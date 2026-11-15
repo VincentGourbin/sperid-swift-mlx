@@ -13,8 +13,13 @@ enum TinyParity {
         return (try? loadArrays(url: url)) ?? [:]
     }()
 
+    nonisolated(unsafe) static let denoiser: [String: MLXArray] = {
+        let url = repoRoot.appendingPathComponent("parity/tiny_denoiser.safetensors")
+        return (try? loadArrays(url: url)) ?? [:]
+    }()
+
     static func tensor(_ key: String) -> MLXArray {
-        guard let a = arrays[key] else { fatalError("missing fixture tensor \(key)") }
+        guard let a = arrays[key] ?? denoiser[key] else { fatalError("missing fixture tensor \(key)") }
         return a
     }
 

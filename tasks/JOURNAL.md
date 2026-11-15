@@ -57,3 +57,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-parity.sh decode` → `PARITY OK decode.anchors.fp32 exact=true cells=[8, 49, 213, 910, 3489, 7336, 8132, 8181]`, `PARITY OK decode.gaussian.fp32 relL2=4.96964e-06`, `PARITY OK decode (fp32 anchors exact, Gaussian fp32 relL2 4.96964e-06)`, `PARITY OK decode.ply PLY OK 262144 vertices, max |Δ| 1.91e-06 (tol 1e-05)` ; `idol decode` → `DECODE OK 262144 Gaussians … 10.1 s` (chargement compris, pas une mesure)
 - Limites connues : le latent vient de la branche non conditionnée (pas d'image) ; la passe SDK complète sur l'avocat (DINOv3 désormais accessible) tourne encore et n'enregistre pas son latent.
 - Pas d'agent : 0 · appels d'outils : 5
+
+## T-2.1 · T-2.2 · T-2.3 — Couches du débruiteur (plongements v1, RePo + rotation entrelacée, attention RoPE, bloc unifié) — 2026-11-15 — validées
+- Fait : `Models/Layers/Embedders.swift` (`PcdPositionEmbedderV1`), `Models/Denoiser/{RePo,UnifiedBlock,Denoiser,DenoiserLoading}.swift` (`RePo3DRotaryEmbedding` avec `clamp_mul` écrit comme la référence, `applyInterleavedRotary`, `RopeMultiHeadAttention` RoPE **avant** les normes, `UnifiedTransformerBlock` modulé / non modulé, `IdolDenoiser` complet, `FeedForwardStack`) ; `referencePrecision` restreint aux poids/biais des Linear (les `shift_table` des blocs restent fp32) ; fixture `parity/tiny_denoiser.safetensors` (211 tenseurs, modèle tiny C 128 × 2 têtes × 64) ; `Tests/SperidTests/TinyDenoiserParityTests.swift`.
+- Bug réel rencontré : amont — `MLP(mlp_layer_num=1)` est mal formé (`Linear(inner, out)` sur une entrée de 5 canaux) ; le vrai modèle a 2 raffineurs, la fixture aussi.
+- Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh TinyDenoiserParityTests` → `TESTS OK (6 tests, 0 skippés)` (`TINYDIT latent 6.177498e-07 camera 5.804212e-07`) ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
+- Limites connues : chemin complexe (`real_valued = False`, MPS) non porté — la forme réelle (cos, sin) est la même rotation.
+- Pas d'agent : 0 · appels d'outils : 6

@@ -76,3 +76,31 @@ public struct PcdPositionEmbedderV2: Sendable {
         return embed
     }
 }
+
+/// `PcdAbsolutePositionEmbedder` (the denoiser's latent positions): per axis `[sin(x·f·2π), cos(x·f·2π)]`
+/// with f = 2^[0, 1, …, maxRes−1] then 2^(k/r·maxRes) for the remaining r frequencies, zero-padded to C
+/// (pitfall 7). Angle written as torch does: `outer(x, f) * 2 * π`, three roundings.
+public struct PcdPositionEmbedderV1: Sendable {
+    public let channels: Int
+    let freqs: [Float]
+
+    public init(channels: Int, inChannels: Int = 3, maxRes: Int = 16) {
+        self.channels = channels
+        let n = channels / inChannels / 2
+        let residual = max(0, n - maxRes)
+        let exponents = (0..<maxRes).map(Float.init)
+            + (0..<residual).map { Float($0) / Float(residual) * Float(maxRes) }
+        freqs = exponents.prefix(n).map { pow(Float(2), $0) }
+    }
+
+    /// x: [..., 3] → [..., channels] (fp32).
+    public func callAsFunction(_ x: MLXArray) -> MLXArray {
+        let dims = Array(x.shape.dropLast())
+        let flat = x.asType(.float32).reshaped(-1, 1)
+        let ang = ((flat * MLXArray(freqs).reshaped(1, -1)) * 2) * piFloat32
+        var embed = concatenated([sin(ang), cos(ang)], axis: -1).reshaped(dims + [-1])
+        let pad = channels - embed.dim(-1)
+        if pad > 0 { embed = concatenated([embed, MLXArray.zeros(dims + [pad], dtype: embed.dtype)], axis: -1) }
+        return embed
+    }
+}

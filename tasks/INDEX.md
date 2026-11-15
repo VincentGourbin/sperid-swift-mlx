@@ -12,9 +12,9 @@
 | T-1.5 | Décodeur octree Swift + descente (bruit rejoué) + parité tiny puis real | `plan/04-jalon1.md` | T-1.4, T-1.2 | validée |
 | T-1.6 | Décodeur gaussien + `to_representation` en MLX (contre `GaussianCloud.activate`) | `plan/04-jalon1.md` | T-1.5 | validée |
 | T-1.7 | `idol decode --latent latent.npy` → `.ply` ; comparaison au `.ply` Python ⛔ G-1 | `plan/04-jalon1.md` | T-1.6 | validée (GATE G-1 posée) |
-| T-2.1 | `SinusoidalEmbedder` (cos/sin, t·1000), `PcdAbsolutePositionEmbedder` v1, MLP caméra | `plan/05-jalon2.md` | T-1.7 | à faire |
-| T-2.2 | `RePo3DRotaryEmbedding` + rotation par paires entrelacées (piège 1-2) | `plan/05-jalon2.md` | T-2.1 | à faire |
-| T-2.3 | `RopeMultiHeadAttention`, `UnifiedTransformerBlock` (modulé / non modulé) | `plan/05-jalon2.md` | T-2.2 | à faire |
+| T-2.1 | `SinusoidalEmbedder` (cos/sin, t·1000), `PcdAbsolutePositionEmbedder` v1, MLP caméra | `plan/05-jalon2.md` | T-1.7 | validée |
+| T-2.2 | `RePo3DRotaryEmbedding` + rotation par paires entrelacées (piège 1-2) | `plan/05-jalon2.md` | T-2.1 | validée |
+| T-2.3 | `RopeMultiHeadAttention`, `UnifiedTransformerBlock` (modulé / non modulé) | `plan/05-jalon2.md` | T-2.2 | validée |
 | T-2.4 | `LatentSeqMMFlowModel` complet + loader (560 tenseurs, fp16 des blocs, fp32 ailleurs) | `plan/05-jalon2.md` | T-2.3 | à faire |
 | T-2.5 | **Mesure** : un forward L = 12 294, lot 1 et 2 — temps, pic MLX, SDPA fusionné ou non | `plan/05-jalon2.md` | T-2.4 | à faire |
 | T-2.6 | Échantillonneur Euler + CFG (séquentiel et batché), annulable, une synchro par pas (IT-2) | `plan/05-jalon2.md` | T-2.5 | à faire |

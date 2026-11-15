@@ -33,12 +33,15 @@ public enum ModuleLoading {
         try module.update(parameters: ModuleParameters.unflattened(selected), verify: .all)
     }
 
-    /// `convert_module_to_f16` of the reference: the Linear layers inside `blocks.*` in fp16; norms
-    /// (LayerNorm32 weights, RMSNorm `gamma`) and everything outside the blocks stay fp32.
-    public static func referencePrecision(blockDType: DType) -> (String) -> DType? {
+    /// `convert_module_to_f16` of the reference: the **Linear** weights and biases inside the given
+    /// module lists in fp16; norms (LayerNorm32 weights, RMSNorm `gamma`), per-block `shift_table`s and
+    /// everything outside those lists stay fp32.
+    public static func referencePrecision(blockDType: DType, prefixes: [String] = ["blocks."]) -> (String) -> DType? {
         { name in
-            guard name.hasPrefix("blocks.") else { return .float32 }
-            return name.contains("norm") ? .float32 : blockDType
+            guard prefixes.contains(where: { name.hasPrefix($0) }),
+                  name.hasSuffix(".weight") || name.hasSuffix(".bias"), !name.contains("norm")
+            else { return .float32 }
+            return blockDType
         }
     }
 }

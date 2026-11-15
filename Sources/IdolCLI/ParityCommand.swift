@@ -11,15 +11,17 @@ struct ParityCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "parity", abstract: "Check a component against the Python fixtures (prints PARITY OK|FAILED).")
 
-    @Argument(help: "Component: decode.") var component: String
+    @Argument(help: "Component: decode | denoise.") var component: String
+    @Option(help: "denoise: guidance mode (sequential | batched).") var guidance = "sequential"
     @Option(help: "Models directory (default: $SPERID_MODELS_DIR, else ~/Library/Caches/models).")
     var modelsDir: String?
     @Option(help: "Where the Swift .ply files go.") var outDir = ".local-runs/parity"
 
     func run() throws {
-        guard component == "decode" else { throw ValidationError("unknown component \(component) (decode)") }
         let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
             ?? ModelsDirectory.resolve()
+        if component == "denoise" { return try runDenoise(root: root) }
+        guard component == "decode" else { throw ValidationError("unknown component \(component) (decode | denoise)") }
         let f = try loadArrays(url: root.appendingPathComponent("parity/decoders.safetensors"))
         try FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
         var ok = true

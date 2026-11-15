@@ -12,7 +12,7 @@ struct IdolCLI: AsyncParsableCommand {
         commandName: "idol",
         abstract: "speridlabs/idol on Apple Silicon (MLX): one image → 3D Gaussian splat.",
         version: IdolCore.version,
-        subcommands: [InfoCommand.self, DownloadCommand.self, DecodeCommand.self, ParityCommand.self, ScheduleCommand.self]
+        subcommands: [InfoCommand.self, DownloadCommand.self, DecodeCommand.self, DenoiseCommand.self, ParityCommand.self, ProfileCommand.self, ScheduleCommand.self]
     )
 }
 

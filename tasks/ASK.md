@@ -23,3 +23,6 @@ Gabarit dans `AGENTS.md` §6. Une réponse est datée et recopiée sous la quest
   - Swift : `.local-runs/parity/decode_swift_fp16.ply` (dans le dépôt)
 - Options : A) même objet, on passe au Jalon 2 (débruiteur) ; B) différence visible (décrire).
 - Rappel, non bloquant : Q3 de G-0 (détourage BiRefNet ou Vision d'Apple) reste ouverte pour le Jalon 4.
+
+### Réponse de Vincent — 2026-11-15
+- G-1 : **A** — même objet. On passe au Jalon 2, **avec de vrais objets** désormais : les fixtures du débruiteur et des étapes suivantes partent d'images de la galerie (DINOv3 accessible), plus de latent non conditionné.

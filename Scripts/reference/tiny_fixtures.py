@@ -15,6 +15,8 @@ from _common import OctreeNoiseRecorder, ROOT, meta, randomize, save_determinist
 
 import idol.models.decoder as decoder_mod  # noqa: E402
 from idol.models import layers as L  # noqa: E402
+from idol.models.dit import LatentSeqMMFlowModel  # noqa: E402
+from tensordict import TensorDict  # noqa: E402
 
 SEED = 1234
 C, H, CTX = 64, 4, 16          # channels, heads (head_dim 16), latent channels
@@ -109,14 +111,63 @@ def build():
     return out
 
 
+DC, DH = 128, 2  # denoiser: head_dim must be 64 (RePo's num_head_channels default)
+
+
+@torch.no_grad()
+def build_denoiser():
+    """The denoiser's own layers and a tiny LatentSeqMMFlowModel (card T-2.1 … T-2.4), fp32."""
+    g = torch.Generator().manual_seed(SEED + 1)
+    rn = lambda *s: torch.randn(*s, generator=g)  # noqa: E731
+    out = {}
+    pts = torch.rand(1, 32, 3, generator=g)
+    m = fp32(L.PcdAbsolutePositionEmbedder(DC))
+    add(out, "pos_v1", None, {"x": pts}, {"y": m(pts)})
+
+    x = rn(1, 9, DC)
+    m = fp32(L.RePo3DRotaryEmbedding(DC, num_heads=DH, head_dim=64)); randomize(m, g, 0.3)
+    m.real_valued = True
+    cs = m(x)
+    add(out, "repo", m, {"x": x}, {"cos": cs[..., 0], "sin": cs[..., 1]})
+
+    q = rn(1, 9, DH, 64)
+    add(out, "rotary", None, {"x": q, "cos": cs[..., 0], "sin": cs[..., 1]},
+        {"y": L.apply_rotary_emb(q, cs)})
+
+    m = fp32(L.RopeMultiHeadAttention(DC, num_heads=DH)); randomize(m, g)
+    add(out, "rope_attn", m, {"x": x, "cos": cs[..., 0], "sin": cs[..., 1]}, {"y": m(x, cs)})
+
+    mod = rn(1, 6 * DC)
+    for name, modulation in (("unified_mod", True), ("unified_plain", False)):
+        m = fp32(L.UnifiedTransformerBlock(DC, num_heads=DH, modulation=modulation)); randomize(m, g)
+        y = m(x, mod=mod if modulation else None, rotary_emb=cs)
+        add(out, name, m, {"x": x, "mod": mod, "cos": cs[..., 0], "sin": cs[..., 1]}, {"y": y})
+
+    model = LatentSeqMMFlowModel(q_token_length=32, in_channels=16, cam_channels=5, model_channels=DC,
+                                 cond_channels=40, cond2_channels=8, num_blocks=2, num_refiner_blocks=2, num_heads=DH)
+    fp32(model); randomize(model, g, 0.1)
+    for module in model.modules():
+        if isinstance(module, L.RePo3DRotaryEmbedding):
+            module.real_valued = True
+    sample = TensorDict({"latent": rn(1, 32, 16), "camera": rn(1, 1, 5)}, batch_size=1)
+    cond = TensorDict({"feature1": rn(1, 11, 40), "feature2": rn(1, 11, 8)}, batch_size=1)
+    t = torch.tensor([730.0])
+    v = model(sample, t, cond)
+    add(out, "dit", model, {"latent": sample["latent"], "camera": sample["camera"], "feature1": cond["feature1"],
+                            "feature2": cond["feature2"], "t": t},
+        {"latent": v["latent"], "camera": v["camera"]})
+    return out
+
+
 def main():
     torch.set_num_threads(1)
     out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "parity"
     out_dir.mkdir(parents=True, exist_ok=True)
-    tensors = build()
-    path = out_dir / "tiny_layers.safetensors"
-    save_deterministic(tensors, path, meta("tiny_layers", SEED))
-    print(f"wrote {path} ({len(tensors)} tensors, {path.stat().st_size} bytes)")
+    for name, builder, seed in (("tiny_layers", build, SEED), ("tiny_denoiser", build_denoiser, SEED + 1)):
+        tensors = builder()
+        path = out_dir / f"{name}.safetensors"
+        save_deterministic(tensors, path, meta(name, seed))
+        print(f"wrote {path} ({len(tensors)} tensors, {path.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":
