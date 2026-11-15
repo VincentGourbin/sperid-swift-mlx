@@ -13,6 +13,7 @@ Mesures reproductibles (état des horloges GPU, écart ±2 %). Rien pour l'insta
 ## Decisions
 - [Source des poids des encodeurs](decisions/weights-source.md) — DINOv3 gated sans accès au 2026-11-15 ; dépôt officiel recommandé, repack Comfy en repli ; FLUX.2-dev accessible, encodeur aussi présent en local.
 - [Organisation du paquet](decisions/package-layout.md) — `SperidCore` partagé + `IdolCore` + `idol` ; copie depuis les dépôts frères, pas de dépendance ; octree sur CPU ; bruit injectable.
+- [Formats de sortie](decisions/output-formats.md) — PLY fait (Blender 5.3 l'importe) ; RealityKit 27 rend les splats nativement (vérifié SDK) ; USD 26.03 splats sans Quick Look ; USDZ universel = maillage à extraire.
 - [Profils de référence (prévus)](decisions/reference-profiles.md) — matrice `<bits>bit-fast|lean` + famille `turbo/`, tout « à mesurer ».
 
 ## Pitfalls

@@ -12,7 +12,7 @@ G-1 levée le 2026-11-15 (même objet) ; Jalon 2 avec de vrais objets (images de
 fiches T-2.1 à T-2.3 · validées · 2026-11-15
 fiches T-2.4, T-2.6 · validées · 2026-11-15 (avocat réel)
 fiches T-2.5, T-2.7 · validées · 2026-11-15 — GATE G-2 posée (avocat Swift vs Python)
-fiche suivante : T-3.1 · à faire après G-2
+G-2 levée le 2026-11-15 ; fiche suivante : T-3.1 · à faire
 dernière mise à jour : 2026-11-15 (plan rév. 1)
 
 Rappel : une seule fiche `en cours` à la fois ; format d'une ligne : `fiche T-x.y · en cours|validée|bloquée · AAAA-MM-JJ`.

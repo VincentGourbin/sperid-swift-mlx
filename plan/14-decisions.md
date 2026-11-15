@@ -18,4 +18,5 @@
 - ~~Q-2~~ **Tranchée 2026-11-15 : nom gardé.** Nom du dépôt et du paquet : `sperid-swift-mlx` / `SperidSwift` / CLI `idol` ?
 - Q-3 (Jalon 4) Détourage : BiRefNet porté, ou Vision d'Apple par défaut et BiRefNet en option ?
 - Q-4 (après G-4) Un viewer de splats Metal dans ce dépôt, ou dans l'app seulement ?
+- Q-6 Formats de sortie : priorités entre RealityKit natif, USD splats et maillage (`.usdz`/`.glb`) — `docs/knowledge/decisions/output-formats.md`.
 - Q-5 (G-6) Publication HF des packs (`VincentGOURBIN/idol-mlx-packs`) et visibilité du dépôt.

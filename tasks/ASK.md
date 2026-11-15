@@ -34,3 +34,6 @@ Gabarit dans `AGENTS.md` §6. Une réponse est datée et recopiée sous la quest
   - Swift : `.local-runs/parity/avocado_swift.ply`
 - Options : A) même objet → Jalon 3 (encodeurs DINOv3 + VAE en Swift, puis l'image entière en Swift) ; B) différence visible (décrire).
 - Point de mesure (T-2.5) : pas de risque mémoire (attention fusionnée) ; temps par évaluation 3,4-5,8 s selon l'état du GPU, à remesurer proprement avant d'optimiser.
+
+### Réponse de Vincent — 2026-11-15
+- G-2 : **A** (« ça a l'air pas mal du tout ») ; cible de qualité = le Space `speridlabs/idol` (même code que la référence, vérifié). Question nouvelle : sorties USDZ et Blender → `docs/knowledge/decisions/output-formats.md`, Q-6.
