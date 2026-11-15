@@ -6,3 +6,10 @@
 - `IdolCore`: `IdolConfig` (the published `config.json`), `IdolRequest` (SDK defaults and bounds, `.turbo`), `IdolWeights` (every file pinned to a Hub revision with its SHA-256, tensor-count and anchor-shape contracts from the published headers), `FlowSchedule` (Euler grid, network time, turbo phase), `NoiseSource` (every random draw injectable), `SystematicSampler` (octree resampling, CPU), `GaussianCloud` (activations), `PLYWriter` (standard 3DGS PLY, z-up → y-up), `CameraPose`.
 - CLI: `idol info` (local copies vs contracts, headers only), `idol schedule`.
 - Plan rév. 1 (`PLAN.md`, `plan/`), cards for Jalon 1 (`tasks/`), knowledge base (`docs/knowledge/`).
+
+## Unreleased — Jalon 1 (2026-11-15)
+
+- `HubDownloader` (resume, SHA-256, gated-repository error) and `idol download [--turbo]`.
+- Decoder layers (`LayerNorm32`, `MultiHeadRMSNorm`, sinusoidal and point embedders, attention, both cross blocks), `OctreeDecoder` + CPU `OctreeDescent`, `GaussianDecoder` + `GaussianAssembly`, `IdolDecoder`; `ReplayNoise` / `SeededNoise`.
+- `idol decode`, `idol parity decode`; tiny fixtures from the upstream classes, real fixtures without the gated encoders (unconditional latent from the real denoiser).
+- Parity: fp32 anchors bit-exact, Gaussian decoder 5e-6 (fp32), PLY 1.9e-6 from `save_ply`.

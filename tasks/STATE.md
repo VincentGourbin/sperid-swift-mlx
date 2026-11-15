@@ -7,7 +7,8 @@ fiche T-1.3 · validée · 2026-11-15
 fiche T-1.4 · validée · 2026-11-15
 fiche T-1.5 · validée · 2026-11-15
 fiche T-1.6 · validée · 2026-11-15
-fiche T-1.7 · en cours · 2026-11-15
+fiche T-1.7 · validée · 2026-11-15 — GATE G-1 posée (revue visuelle des deux .ply)
+fiche suivante : T-2.1 · à faire après réponse à G-1
 dernière mise à jour : 2026-11-15 (plan rév. 1)
 
 Rappel : une seule fiche `en cours` à la fois ; format d'une ligne : `fiche T-x.y · en cours|validée|bloquée · AAAA-MM-JJ`.

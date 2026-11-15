@@ -50,3 +50,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh TinyGaussianParityTests` → `TESTS OK (1 tests, 0 skippés)` ; `Scripts/check-tests.sh RealDecoderParityTests` → `TESTS OK (6 tests, 0 skippés)` avec `REALGAUSS fp32 relL2 4.96964e-06`, `REALGAUSS fp16 vs fp32: swift 0.003381391 python 0.01822612`, `REALGAUSS assembly worst relMax 1.1920964e-07`
 - Limites connues : temps du forward à 8 192 / 32 768 ancrages non profilé (à faire avec le protocole de mesure, pas en test) ; 1 M de Gaussiennes non essayé.
 - Pas d'agent : 0 · appels d'outils : 6
+
+## T-1.7 — `idol decode` : latent → `.ply` ⛔ G-1 — 2026-11-15 — validée (GATE G-1 posée)
+- Fait : `Decoding/IdolDecoder.swift` (les deux décodeurs chargés après vérification des contrats, `decode(latent:numGaussians:noise:)`), `IdolCLI/{DecodeCommand,ParityCommand}.swift` (`idol decode`, `idol parity decode`), `Scripts/reference/compare_ply.py`, `Scripts/check-parity.sh` (étape PLY côté Python pour `decode`).
+- Bug réel rencontré : aucun.
+- Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-parity.sh decode` → `PARITY OK decode.anchors.fp32 exact=true cells=[8, 49, 213, 910, 3489, 7336, 8132, 8181]`, `PARITY OK decode.gaussian.fp32 relL2=4.96964e-06`, `PARITY OK decode (fp32 anchors exact, Gaussian fp32 relL2 4.96964e-06)`, `PARITY OK decode.ply PLY OK 262144 vertices, max |Δ| 1.91e-06 (tol 1e-05)` ; `idol decode` → `DECODE OK 262144 Gaussians … 10.1 s` (chargement compris, pas une mesure)
+- Limites connues : le latent vient de la branche non conditionnée (pas d'image) ; la passe SDK complète sur l'avocat (DINOv3 désormais accessible) tourne encore et n'enregistre pas son latent.
+- Pas d'agent : 0 · appels d'outils : 5

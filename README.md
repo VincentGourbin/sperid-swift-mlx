@@ -2,7 +2,7 @@
 
 Swift / MLX ports of the [speridlabs](https://huggingface.co/speridlabs) models for Apple Silicon, starting with **Idol**: one picture of an object in, up to a million 3D Gaussians out, written as a standard 3DGS `.ply`, with no Python at inference time.
 
-> **Status — 0.1.0, architecture in place (2026-11-15).** The package, the output stage (activations, PLY writer, camera), the Euler time grid, the octree's systematic resampling and the weight contracts are written and tested without weights. The models themselves land milestone by milestone; see [the plan](PLAN.md) and [the cards](tasks/INDEX.md). Nothing here generates a splat yet.
+> **Status — Jalon 1 done (2026-11-15).** The second half of the pipeline runs in Swift: latent → octree anchors → Gaussians → `.ply` (`idol decode`). In fp32 the anchors are bit-identical to the Python reference and the Gaussian decoder agrees to 5e-6; in fp16 (the reference precision) Swift sits 5× closer to fp32 than PyTorch MPS does. The encoders and the denoiser come next ([plan](PLAN.md), [cards](tasks/INDEX.md)): an image does not become a splat yet.
 
 | Documentation | |
 |---|---|

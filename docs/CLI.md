@@ -8,13 +8,13 @@ Build with `Scripts/check-build.sh`; the binary is `.xcodebuild/Build/Products/R
 |---|---|---|
 | `idol info [--models-dir DIR]` | available | lists every pinned weight file, whether it is present under the models directory, and checks present safetensors against their contract (tensor count, anchor shapes) by reading the header only |
 | `idol schedule [--steps N] [--rescale-t R]` | available | prints the Euler time grid: t, next t, the network time (1000·t), the turbo expert of each step |
-| `idol download [--turbo]` | T-1.2 | downloads the pinned files with resume and SHA-256 checks (`HF_TOKEN` for gated repositories) |
-| `idol decode --latent FILE --out x.ply` | T-1.7 | latent [1, 8192, 16] → octree anchors → Gaussians → `.ply` |
+| `idol download [--turbo]` | available | downloads the pinned files with resume and SHA-256 checks (`HF_TOKEN` for gated repositories) |
+| `idol decode --latent FILE [--key latent] [--num-gaussians N] [--noise FILE --noise-prefix P] [--seed S] [--fp32] --out x.ply` | available | latent [1, 8192, 16] → octree anchors → Gaussians → `.ply`; `--noise` replays recorded draws (parity) |
 | `idol denoise --cond FILE` | T-2.7 | image tokens → latent and camera |
 | `idol encode --image FILE` | T-3.5 | preprocessed image → DINOv3 and FLUX.2 VAE tokens |
 | `idol generate --image FILE [--mode synthetic\|real] [--seed] [--steps] [--cfg] [--num-gaussians] [--turbo] [--reference ID]` | T-4.6, T-5.3, T-6.4 | the whole pipeline; writes `<name>.ply`, `<name>_input.png`, `<name>_camera.json` like the Python SDK |
 | `idol references` | T-6.4 | the reference configurations |
-| `idol parity <component>` | T-1.7 → | Swift against the Python fixtures |
+| `idol parity decode` | available | Swift against the Python fixtures (`Scripts/check-parity.sh decode` adds the PLY check) |
 
 The models directory is `--models-dir`, else `$SPERID_MODELS_DIR`, else `~/Library/Caches/models`; files live at `<dir>/<repo id>/<path>`.
 
