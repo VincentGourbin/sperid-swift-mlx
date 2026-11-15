@@ -7,12 +7,12 @@ import IdolCore
 import SperidCore
 
 @main
-struct IdolCLI: ParsableCommand {
+struct IdolCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "idol",
         abstract: "speridlabs/idol on Apple Silicon (MLX): one image → 3D Gaussian splat.",
         version: IdolCore.version,
-        subcommands: [InfoCommand.self, ScheduleCommand.self]
+        subcommands: [InfoCommand.self, DownloadCommand.self, ScheduleCommand.self]
     )
 }
 
