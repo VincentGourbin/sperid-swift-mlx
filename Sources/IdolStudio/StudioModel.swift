@@ -125,6 +125,22 @@ final class StudioModel {
 
     func cancel() { cancelFlag = true }
 
+    /// Extracts the mesh of the current splat and writes it as .glb or .usdz (chosen by the extension).
+    func exportMesh(to url: URL) {
+        guard let cloud else { return }
+        status = "Exporting \(url.lastPathComponent)…"
+        let snapshot = cloud
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let mesh = MeshExtraction.extract(snapshot)
+                if url.pathExtension.lowercased() == "glb" { try GLBWriter.write(mesh, to: url) } else { try USDZWriter.write(mesh, to: url) }
+                Task { @MainActor in self.status = "Exported \(url.lastPathComponent) (\(mesh.triangleCount) triangles)" }
+            } catch {
+                Task { @MainActor in self.status = "Export failed: \(error.localizedDescription)" }
+            }
+        }
+    }
+
     /// Shows any 3DGS .ply (Idol's, the Python SDK's, other tools').
     func openPLY(_ url: URL) {
         do {

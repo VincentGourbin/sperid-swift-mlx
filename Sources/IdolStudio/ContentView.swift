@@ -101,6 +101,13 @@ struct ContentView: View {
                     panel.allowedContentTypes = [UTType(filenameExtension: "ply") ?? .data]
                     if panel.runModal() == .OK, let url = panel.url { model.openPLY(url) }
                 }
+                if model.cloud != nil {
+                    Menu("Export") {
+                        Button("USDZ (Quick Look, AR)…") { saveMesh("usdz") }
+                        Button("GLB (Blender, web)…") { saveMesh("glb") }
+                    }
+                    .fixedSize()
+                }
                 if let folder = model.lastOutputFolder {
                     Button("Show .ply") { NSWorkspace.shared.activateFileViewerSelecting([folder]) }
                 }
@@ -130,6 +137,13 @@ struct ContentView: View {
             Slider(value: value, in: range, step: step)
             Text(String(format: format, value.wrappedValue)).monospacedDigit().frame(width: 44, alignment: .trailing)
         }
+    }
+
+    func saveMesh(_ ext: String) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: ext) ?? .data]
+        panel.nameFieldStringValue = "idol.\(ext)"
+        if panel.runModal() == .OK, let url = panel.url { model.exportMesh(to: url) }
     }
 
     func chooseImage() {

@@ -122,3 +122,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `TinyBiRefNetOpsTests` → `TESTS OK` (`TINYDEFORM k=1 9.2e-08`, `k=3 2.2e-07`, `k=7 5.0e-07`) ; `RealBiRefNetParityTests` → `TESTS OK (1 tests)` avec `REALBIREF float32 … alpha1024 1.0015049e-06 | uint8 mean |Δ| 0.0026, max 1, IoU(>127) 1.0` et `float16 … alpha1024 0.00018794688 | max 3, IoU 0.99994` ; prétraitement Swift (BiRefNet) vs SDK sur 3 images opaques du Space : IoU 0,993-0,998, écart 0,2-1,7/255 ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
 - Limites connues : 1,1 s par image (premier passage 5,6 s) ; Vision reste disponible (pas de poids).
 - Pas d'agent : 0 · appels d'outils : ~12
+
+## Hors plan — Export USDZ et GLB (demande de Vincent) — 2026-11-15 — validé
+- Fait : `Sources/IdolCore/Export/{SplatMesh,SurfaceNets,GLBWriter,USDZWriter}.swift`, `idol export`, `idol generate --glb --usdz`, menu Export dans Idol Studio, rendu hors écran d'un USDZ (`idol-studio x.usdz --render out.png`), `Tests/SperidTests/ExportTests.swift`.
+- Bug réel rencontré : `usdchecker` : `inputs:varname` doit être `string` ; USDZ 66 Mo avec sommets dupliqués → points partagés + UV `faceVarying` (29 Mo) ; écriture parallèle dans un tableau Swift (exclusivité) → pointeurs bruts.
+- Validation : `Scripts/check-tests.sh ExportTests` → `TESTS OK (3 tests, 0 skippés)` ; `usdchecker --arkit babyfoot.usdz` → `Success!` ; GLB relu en Python (en-têtes, longueurs, indices) ; rendu RealityKit du USDZ.
+- Limites connues : maillage bosselé (grille 192), pas de décimation ; couleurs = cuisson des couleurs moyennes (pas de reflets).
+- Pas d'agent : 0 · appels d'outils : ~12

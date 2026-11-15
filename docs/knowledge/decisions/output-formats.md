@@ -26,4 +26,12 @@
 3. Maillage (`.usdz`, `.glb`, `.obj`) : chantier à part (extraction de surface, cuisson des couleurs), à
    mesurer en qualité ; ce qui rend un objet lisible partout.
 
-**Ouvert** : priorités de Vincent ; Quick Look et le schéma splat (à tester sur iOS 27 en vrai).
+**Fait (2026-11-15, demande de Vincent « export usdz et glb »)** : `Export/{SplatMesh,SurfaceNets,GLBWriter,USDZWriter}.swift`.
+Densité : chaque Gaussienne dépose son opacité et sa couleur (`0,5 + C0·f_dc`) en trilinéaire à son centre et à
+±1σ le long de ses trois axes, flou [1 4 6 4 1], surface nets au seuil 0,04 × p99 (0,08-0,12 trouaient les
+pieds du baby-foot, 0,02 faisait remonter des Gaussiennes intérieures), normales = −∇densité, repère y-haut.
+GLB : `COLOR_0` linéaire, matériau mat double face. USDZ : atlas (une case 4×4 texels par quad, couleurs
+bilinéaires), USDA + PNG, zip non compressé aligné sur 64 octets, `usdchecker --arkit` → Success ; rendu
+RealityKit (chargement comme AR Quick Look) vérifié. Baby-foot : 350 k triangles, 2,3 s, GLB 10,5 Mo, USDZ 29 Mo.
+
+**Ouvert** : décimation (USDZ texte volumineux), USDC binaire ; Quick Look et le schéma splat USD (iOS 27 réel).

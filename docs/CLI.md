@@ -13,6 +13,8 @@ Build with `Scripts/check-build.sh`; the binary is `.xcodebuild/Build/Products/R
 | `idol denoise --cond FILE` | T-2.7 | image tokens → latent and camera |
 | `idol encode --image FILE` | T-3.5 | preprocessed image → DINOv3 and FLUX.2 VAE tokens |
 | `idol generate --image FILE [--mode synthetic\|real] [--seed] [--steps] [--cfg] [--num-gaussians] [--turbo] [--reference ID]` | T-4.6, T-5.3, T-6.4 | the whole pipeline; writes `<name>.ply`, `<name>_input.png`, `<name>_camera.json` like the Python SDK |
+| `idol export --ply x.ply [--glb y.glb] [--usdz y.usdz] [--resolution 192] [--iso 0.04]` | available | coloured mesh from a splat: density grid + surface nets; GLB with vertex colours, USDZ with a baked texture atlas and a UsdPreviewSurface (passes `usdchecker --arkit`) |
+| `idol generate … --glb --usdz` | available | also writes `<name>.glb` / `<name>.usdz` |
 | `idol references` | T-6.4 | the reference configurations |
 | `idol parity decode` | available | Swift against the Python fixtures (`Scripts/check-parity.sh decode` adds the PLY check) |
 

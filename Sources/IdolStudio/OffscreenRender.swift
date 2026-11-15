@@ -22,12 +22,27 @@ enum OffscreenRender {
 
     static func render(_ cloud: GaussianCloud, to url: URL, views: Int = 4, size: Int = 512,
                        inputCamera: CameraPose? = nil) async throws {
+        try await render(entity: try SplatEntity.make(cloud), to: url, views: views, size: size, inputCamera: inputCamera)
+    }
+
+    /// Any entity (a splat, or a .usdz loaded the way AR Quick Look loads it), with a light for meshes.
+    static func render(entity: Entity, to url: URL, views: Int = 4, size: Int = 512, inputCamera: CameraPose? = nil,
+                       lit: Bool = false) async throws {
         let device = MTLCreateSystemDefaultDevice()!
         let renderer = try RealityRenderer()
         renderer.cameraSettings.colorBackground = .color(CGColor(gray: 0.05, alpha: 1))
         renderer.cameraSettings.isToneMappingEnabled = false
-        let splat = try SplatEntity.make(cloud)
-        renderer.entities.append(splat)
+        renderer.entities.append(entity)
+        if lit {
+            let light = DirectionalLight()
+            light.light.intensity = 3000
+            light.look(at: .zero, from: [1, 2, 2], relativeTo: nil)
+            renderer.entities.append(light)
+            let fill = DirectionalLight()
+            fill.light.intensity = 1500
+            fill.look(at: .zero, from: [-2, 1, -1], relativeTo: nil)
+            renderer.entities.append(fill)
+        }
         let camera = PerspectiveCamera()
         camera.camera.fieldOfViewInDegrees = 40
         renderer.entities.append(camera)

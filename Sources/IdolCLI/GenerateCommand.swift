@@ -24,6 +24,8 @@ struct GenerateCommand: ParsableCommand {
     @Flag(help: "idol-turbo: 5 guidance-free steps with the phase LoRAs (overrides --steps and --cfg).") var turbo = false
     @Option(help: "Output folder.") var out = "outputs"
     @Option(help: "Models directory.") var modelsDir: String?
+    @Flag(help: "Also write <name>.glb (mesh with vertex colours).") var glb = false
+    @Flag(help: "Also write <name>.usdz (textured mesh, Quick Look / AR).") var usdz = false
     @Option(help: "Profile with swift-mlx-profiler (fineGrained): writes report.txt and trace.json into this folder.")
     var profile: String?
 
@@ -57,6 +59,13 @@ struct GenerateCommand: ParsableCommand {
         session?.beginPhase("8. Write .ply / png / json", category: .postProcess)
         try output.write(to: URL(fileURLWithPath: out), name: name)
         session?.endPhase("8. Write .ply / png / json", category: .postProcess)
+        if glb || usdz {
+            let mesh = MeshExtraction.extract(output.cloud)
+            let folder = URL(fileURLWithPath: out)
+            if glb { try GLBWriter.write(mesh, to: folder.appendingPathComponent("\(name).glb")) }
+            if usdz { try USDZWriter.write(mesh, to: folder.appendingPathComponent("\(name).usdz")) }
+            print("mesh: \(mesh.triangleCount) triangles → \([glb ? "glb" : nil, usdz ? "usdz" : nil].compactMap { $0 }.joined(separator: ", "))")
+        }
         if let session, let profile {
             session.finish()
             let report = session.generateReport()
