@@ -80,7 +80,7 @@ class OctreeNoiseRecorder:
 
             def fake_rand(*shape, **kwargs):
                 rows = next(calls)
-                return table[rows].reshape(-1, 1).to(kwargs.get("device", "cpu"))
+                return table[rows.cpu()].reshape(-1, 1).to(rows.device)
 
             torch.rand = fake_rand
             try:
@@ -91,7 +91,7 @@ class OctreeNoiseRecorder:
         def fake_rand_like(t, dtype=None, **kwargs):
             out = torch.rand(t.shape, generator=recorder.gen, dtype=dtype or t.dtype)
             recorder.jitter = out.clone()
-            return out
+            return out.to(t.device)
 
         self.mod.systematic_sample = wrapped_ss
         torch.rand_like = fake_rand_like

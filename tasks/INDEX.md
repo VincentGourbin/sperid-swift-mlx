@@ -9,7 +9,7 @@
 | T-1.2 | Téléchargement des poids (`HubDownloader` : reprise HTTP Range, SHA-256 contre `HubFile.sha256`, `HF_TOKEN` pour le gated) + `idol download` | `plan/04-jalon1.md` | T-1.0 | validée |
 | T-1.3 | Fixtures tiny (Python, poids aléatoires graine fixe, dimensions réduites) pour `MultiHeadRMSNorm`, `LayerNorm32`, `PcdAbsolutePositionEmbedderv2`, `SinusoidalEmbedder`, `MultiHeadAttention` (self/cross), deux blocs de décodeur + `Scripts/check-fixtures.sh` + `check-parity.sh` | `plan/04-jalon1.md` | T-1.1 | validée |
 | T-1.4 | Couches communes Swift (`Models/Layers/`) + parité tiny | `plan/04-jalon1.md` | T-1.3 | validée |
-| T-1.5 | Décodeur octree Swift + descente (bruit rejoué) + parité tiny puis real | `plan/04-jalon1.md` | T-1.4, T-1.2 | à faire |
+| T-1.5 | Décodeur octree Swift + descente (bruit rejoué) + parité tiny puis real | `plan/04-jalon1.md` | T-1.4, T-1.2 | validée |
 | T-1.6 | Décodeur gaussien + `to_representation` en MLX (contre `GaussianCloud.activate`) | `plan/04-jalon1.md` | T-1.5 | à faire |
 | T-1.7 | `idol decode --latent latent.npy` → `.ply` ; comparaison au `.ply` Python ⛔ G-1 | `plan/04-jalon1.md` | T-1.6 | à faire |
 | T-2.1 | `SinusoidalEmbedder` (cos/sin, t·1000), `PcdAbsolutePositionEmbedder` v1, MLP caméra | `plan/05-jalon2.md` | T-1.7 | à faire |

@@ -29,8 +29,15 @@ public final class SinusoidalEmbedder: Module {
     /// t: [B] → [B, hidden] (fp32 like the reference).
     public func callAsFunction(_ t: MLXArray) -> MLXArray {
         let half = frequencyDim / 2
-        let k = MLXArray(0..<half).asType(.float32)
-        let freqs = exp(-Float(log(maxPeriod)) * k / Float(half))
+        // The reference's own fp32 frequencies when tabulated: torch's exp is ~1 ulp off a correctly
+        // rounded exp, so this removes one source of divergence at angles up to 256·2π. Its effect on
+        // the real octree was below the measurement (T-1.5: the gap there was a fixture bug).
+        let freqs: MLXArray
+        if let table = SinusoidalTables.frequencies(maxPeriod: maxPeriod, half: half) {
+            freqs = MLXArray(table)
+        } else {
+            freqs = exp(-Float(log(maxPeriod)) * MLXArray(0..<half).asType(.float32) / Float(half))
+        }
         var args = t.asType(.float32).expandedDimensions(axis: 1) * freqs.expandedDimensions(axis: 0)
         if twoPi { args = (args * 2) * piFloat32 }  // `args * 2 * torch.pi`: two roundings, in that order
         var h = concatenated([cos(args), sin(args)], axis: -1)
