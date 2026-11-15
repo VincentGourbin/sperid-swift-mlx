@@ -26,7 +26,7 @@ def meta(kind, seed):
 def save_deterministic(tensors, path, metadata):
     """save_file, then canonical (sorted) header JSON: the Rust writer's key order is randomized
     per process, so two identical runs would otherwise differ byte for byte (YuE2, T-1.3)."""
-    tensors = {k: v.detach().contiguous() for k, v in tensors.items()}
+    tensors = {k: v.detach().clone().contiguous() for k, v in tensors.items()}
     save_file(tensors, str(path), metadata=metadata)
     with open(path, "rb") as f:
         n = struct.unpack("<Q", f.read(8))[0]

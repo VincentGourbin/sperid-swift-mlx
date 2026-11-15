@@ -22,3 +22,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh HubDownloaderTests` → `TESTS OK (4 tests, 0 skippés)` ; `idol info` → `ok` sur denoiser, decoder, decoder_gs, birefnet (et idol_turbo_lora)
 - Limites connues : durée non relevée (quelques minutes, 3,2 Go) ; DINOv3 et VAE pas encore téléchargeables par `idol download` (Jalon 3).
 - Pas d'agent : 0 · appels d'outils : 5
+
+## T-1.3 — Fixtures tiny, `check-fixtures.sh`, `check-parity.sh` — 2026-11-15 — validée
+- Fait : `Scripts/reference/{_common,tiny_fixtures}.py` (classes amont, C 64, 4 têtes × 16, ctx 16, fp32 forcé via `module.dtype`), `parity/tiny_layers.safetensors` (193 tenseurs : normes, RMSNorm, FFN, pos v2, plongements temps/niveau, attention self/cross, deux blocs, décodeur octree + descente complète 256 points / 4 niveaux, décodeur gaussien + `to_representation`), `Scripts/check-fixtures.sh`, `Scripts/check-parity.sh`.
+- Bug réel rencontré : les décodeurs amont forcent fp16 par `self.dtype` (et `convert_module_to_f16`) même sur CPU — remis en fp32 pour le tier 1. Tirages de `systematic_sample` groupés par `counts.unique(sorted=False)` : l'enregistreur recalcule les groupes et sert `torch.rand` depuis une table par cellule (fonction amont inchangée), d'où des offsets rejouables dans l'ordre des cellules.
+- Validation : `.venv-ref/bin/python -I Scripts/reference/tiny_fixtures.py` → `wrote …/parity/tiny_layers.safetensors (193 tensors, 2168870 bytes)` ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
+- Limites connues : fichier 2,17 Mo (seuil indicatif de la fiche 2 Mo, accepté) ; descente tiny à 4 niveaux (real : 8).
+- Pas d'agent : 0 · appels d'outils : 4
