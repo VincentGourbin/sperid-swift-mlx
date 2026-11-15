@@ -9,3 +9,8 @@ Gabarit dans `AGENTS.md` §6. Une réponse est datée et recopiée sous la quest
 - Options : A) tu demandes l'accès sur https://huggingface.co/facebook/dinov3-vith16plus-pretrain-lvd1689m (recommandé ; les Jalons 1-2 n'en dépendent pas, l'approbation a le temps d'arriver) ; B) repack `Comfy-Org/Idol` par défaut ; C) A par défaut, B en repli explicite (`--dinov3-source comfy`).
 - Question 2 : nom du dépôt / paquet / CLI : `sperid-swift-mlx` / `SperidSwift` / `idol` — on garde ?
 - Question 3 (non bloquante) : détourage au Jalon 4 — BiRefNet porté (fidèle, coûteux : Swin-L + conv déformable) ou Vision d'Apple par défaut et BiRefNet en option ?
+
+### Réponses de Vincent — 2026-11-15
+- Question 1 : **A** — accès demandé sur `facebook/dinov3-vith16plus-pretrain-lvd1689m` (en attente d'approbation). Pas de repack Comfy par défaut.
+- Question 2 : **nom gardé** — `sperid-swift-mlx` / `SperidSwift` / `idol`.
+- Question 3 : ouverte (à trancher avant le Jalon 4).

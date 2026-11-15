@@ -4,7 +4,7 @@
 
 | Fiche | Titre | Jalon (plan) | Prérequis | État |
 |---|---|---|---|---|
-| T-1.0 | Squelette, scripts, CLAUDE.md, sortie (`GaussianCloud`, `PLYWriter`, `CameraPose`), `FlowSchedule`, `SystematicSampler`, contrats ⛔ G-0 | `plan/04-jalon1.md` | — | validée (GATE G-0 posée) |
+| T-1.0 | Squelette, scripts, CLAUDE.md, sortie (`GaussianCloud`, `PLYWriter`, `CameraPose`), `FlowSchedule`, `SystematicSampler`, contrats ⛔ G-0 | `plan/04-jalon1.md` | — | validée (G-0 levée 2026-11-15) |
 | T-1.1 | Environnement Python de référence (`.venv-ref`, idol-sdk en editable, CPU/MPS) + `Scripts/reference/run_sdk.py` (une image → `.ply`, `_input.png`, `_camera.json`) | `plan/04-jalon1.md` | T-1.0 | à faire |
 | T-1.2 | Téléchargement des poids (`HubDownloader` : reprise HTTP Range, SHA-256 contre `HubFile.sha256`, `HF_TOKEN` pour le gated) + `idol download` | `plan/04-jalon1.md` | T-1.0 | à faire |
 | T-1.3 | Fixtures tiny (Python, poids aléatoires graine fixe, dimensions réduites) pour `MultiHeadRMSNorm`, `LayerNorm32`, `PcdAbsolutePositionEmbedderv2`, `SinusoidalEmbedder`, `MultiHeadAttention` (self/cross), deux blocs de décodeur + `Scripts/check-fixtures.sh` + `check-parity.sh` | `plan/04-jalon1.md` | T-1.1 | à faire |

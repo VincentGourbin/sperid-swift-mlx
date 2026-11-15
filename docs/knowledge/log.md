@@ -7,3 +7,4 @@
 - 2026-11-15 — **Faits DINOv3** lus dans transformers `3a134bc` : ViT-H+ = 1280, 32 couches, 20 têtes, gated SiLU 5120, `rope_theta` 100, RoPE `rotate_half` sur les patches seulement, `layer_norm_eps` 1e-5, pas de biais de clé.
 - 2026-11-15 — **Écarts de la référence notés** : turbo 8 pas (docstring `turbo.py`) contre 5 (carte) ; `num_gaussians` « multiple of 32 » (README) mais arrondi par le code ; `systematic_sample` divise par `clamp_min(sum, 1)`.
 - 2026-11-15 — T-1.0 validée : `BUILD OK`, `TESTS OK (19 tests, 0 skippés)`.
+- 2026-11-15 — **G-0** : DINOv3 par le dépôt officiel (accès demandé, en attente) ; nom `sperid-swift-mlx` confirmé ; détourage encore ouvert.

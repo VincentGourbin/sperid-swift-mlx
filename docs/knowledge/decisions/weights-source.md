@@ -11,7 +11,7 @@ et `black-forest-labs/FLUX.2-dev` (sous-dossier `vae`). Le compte HF de Vincent 
 - L'encodeur FLUX.2 existe aussi en local (`FLUX.2-small-decoder/full_encoder_small_decoder.safetensors`,
   mêmes 111 clés que le VAE Comfy).
 
-**Décision proposée (en attente de G-0)** : option C — dépôt officiel par défaut (Vincent demande
+**Décision (G-0, 2026-11-15)** : option A retenue par Vincent — dépôt officiel, accès demandé, en attente d'approbation. Proposition initiale : option C — dépôt officiel par défaut (Vincent demande
 l'accès ; les Jalons 1-2 n'en dépendent pas), repack Comfy en repli **explicite** (option CLI), jamais
 silencieux. Pour le VAE : `FLUX.2-dev` (accessible) par défaut ; le fichier local sert à vérifier
 l'égalité des valeurs (T-3.3).

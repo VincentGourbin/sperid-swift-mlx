@@ -19,4 +19,4 @@ particulier celui qui génère en 3D », cohérent avec YuE2 en performances et 
 
 **Mesure** : `BUILD OK`, `TESTS OK (19 tests)` au 2026-11-15.
 
-**Ouvert** : le nom (`sperid-swift-mlx`) est soumis à G-0.
+**Nom** : `sperid-swift-mlx` / `SperidSwift` / `idol`, confirmé par Vincent le 2026-11-15 (G-0).
