@@ -115,3 +115,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-tests.sh RealTurboParityTests` → `TESTS OK (3 tests, 0 skippés)` avec `REALTURBO float32 slow vs fp32: swift 0.00014110006`, `fast 0.00017150278`, `float16 slow 0.0018322907 (python 0.0016136391)`, `fast 0.0036271727 (python 0.0035646113)`, `5-step final latent relL2 0.002539` ; `idol generate --turbo` sur 4 exemples du Space → 18,8-24,7 s de débruitage, ≈ 25-31 s au total par objet.
 - Limites connues : temps non mesurés selon le protocole (ordre de grandeur).
 - Pas d'agent : 0 · appels d'outils : ~10
+
+## T-4.3 → T-4.5 — BiRefNet (Swin-L, convolution déformable, décodeur) — 2026-11-15 — validées
+- Fait : `Models/BiRefNet/{Resample,Swin,BiRefNetBlocks,BiRefNet}.swift` (redimensionnement bilinéaire `align_corners=True`, `deform_conv2d` modulée écrite en MLX — échantillonnage bilinéaire torchvision + un GEMM sur les k² échantillons —, Swin-L à fenêtres décalées et biais relatif, entrée multi-échelle, ASPP déformable, décodeur à portes, `remove_background`), `BiRefNetBackgroundRemover`, **détourage par défaut** (`--remover birefnet|vision`) ; `Scripts/reference/birefnet_fixtures.py` (tiny committé + real) ; `Tests/SperidTests/{TinyBiRefNetOpsTests,RealBiRefNetParityTests}.swift`.
+- Bug réel rencontré : les clés numériques d'un `nn.Sequential` (`gdt_convs_4.0`) se chargent en tableau MLX, pas en dictionnaire ; `apply` masqué par `Module.apply`.
+- Validation : `TinyBiRefNetOpsTests` → `TESTS OK` (`TINYDEFORM k=1 9.2e-08`, `k=3 2.2e-07`, `k=7 5.0e-07`) ; `RealBiRefNetParityTests` → `TESTS OK (1 tests)` avec `REALBIREF float32 … alpha1024 1.0015049e-06 | uint8 mean |Δ| 0.0026, max 1, IoU(>127) 1.0` et `float16 … alpha1024 0.00018794688 | max 3, IoU 0.99994` ; prétraitement Swift (BiRefNet) vs SDK sur 3 images opaques du Space : IoU 0,993-0,998, écart 0,2-1,7/255 ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
+- Limites connues : 1,1 s par image (premier passage 5,6 s) ; Vision reste disponible (pas de poids).
+- Pas d'agent : 0 · appels d'outils : ~12

@@ -26,9 +26,9 @@
 | T-3.5 | `ImageConditioner` (les deux flux, résidence : libérés après usage en `lean`) + `idol encode` ⛔ G-3 | `plan/06-jalon3.md` | T-3.4 | validée |
 | T-4.1 | Recadrage (`Preprocess/`) : côté court, érosion 1 px, boîte, carré × marge, composite noir ; Lanczos via vImage | `plan/07-jalon4.md` | T-3.5 | validée |
 | T-4.2 | Protocole `BackgroundRemover` + implémentation Vision (macOS 14+/iOS 17+) comme repli | `plan/07-jalon4.md` | T-4.1 | validée |
-| T-4.3 | Swin-L (fenêtres décalées, biais de position relative) | `plan/07-jalon4.md` | T-4.2 | reportée (Vision en attendant) |
-| T-4.4 | Convolution déformable (bilinéaire + matmul, puis noyau Metal si > 20 % du temps) | `plan/07-jalon4.md` | T-4.3 | reportée (Vision en attendant) |
-| T-4.5 | Décodeur BiRefNet + `remove_background` | `plan/07-jalon4.md` | T-4.4 | reportée (Vision en attendant) |
+| T-4.3 | Swin-L (fenêtres décalées, biais de position relative) | `plan/07-jalon4.md` | T-4.2 | validée |
+| T-4.4 | Convolution déformable (bilinéaire + matmul, puis noyau Metal si > 20 % du temps) | `plan/07-jalon4.md` | T-4.3 | validée |
+| T-4.5 | Décodeur BiRefNet + `remove_background` | `plan/07-jalon4.md` | T-4.4 | validée |
 | T-4.6 | `IdolPipeline` (API publique : `generate(image:request:progress:)`, annulation, résidence par étape), `idol generate` ⛔ G-4 | `plan/07-jalon4.md` | T-4.5 | validée |
 | T-5.1 | Chargeur LoRA de phase (448 tenseurs) et `LoRALinear` à deux experts | `plan/08-jalon5.md` | T-4.6 | validée |
 | T-5.2 | Fusion par phase (deux jeux fusionnés) contre delta à la volée : mesure | `plan/08-jalon5.md` | T-5.1 | validée |

@@ -7,6 +7,7 @@ cd "$(dirname "$0")/.."
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 .venv-ref/bin/python -I Scripts/reference/tiny_fixtures.py "$tmp" > /dev/null || { echo "FIXTURES FAILED (générateur)"; exit 1; }
+.venv-ref/bin/python -I Scripts/reference/birefnet_fixtures.py --tiny-only --tiny-out "$tmp" > /dev/null || { echo "FIXTURES FAILED (BiRefNet)"; exit 1; }
 status=0
 for f in "$tmp"/*.safetensors; do
   name=$(basename "$f")

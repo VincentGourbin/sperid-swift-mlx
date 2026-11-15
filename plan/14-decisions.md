@@ -16,7 +16,7 @@
 - ~~Q-1~~ **Tranchée 2026-11-15 : dépôt officiel, accès demandé.** Source des poids DINOv3 : demander l'accès à `facebook/dinov3-vith16plus-pretrain-lvd1689m`
   (recommandé) ou utiliser `Comfy-Org/Idol` ?
 - ~~Q-2~~ **Tranchée 2026-11-15 : nom gardé.** Nom du dépôt et du paquet : `sperid-swift-mlx` / `SperidSwift` / CLI `idol` ?
-- Q-3 (Jalon 4) Détourage : BiRefNet porté, ou Vision d'Apple par défaut et BiRefNet en option ?
+- ~~Q-3~~ **Tranchée 2026-11-15 : BiRefNet par défaut** (Vision ne trouvait pas le sujet d'une photo de Vincent que le Space détoure), Vision en option. Détourage : BiRefNet porté, ou Vision d'Apple par défaut et BiRefNet en option ?
 - Q-4 (après G-4) Un viewer de splats Metal dans ce dépôt, ou dans l'app seulement ?
 - Q-6 Formats de sortie : priorités entre RealityKit natif, USD splats et maillage (`.usdz`/`.glb`) — `docs/knowledge/decisions/output-formats.md`.
 - Q-5 (G-6) Publication HF des packs (`VincentGOURBIN/idol-mlx-packs`) et visibilité du dépôt.

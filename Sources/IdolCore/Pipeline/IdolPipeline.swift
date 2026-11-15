@@ -45,14 +45,16 @@ public final class IdolPipeline {
     /// The idol-turbo experts, when `turbo.safetensors` is present (`idol download --turbo`); `nil` otherwise.
     public let turbo: TurboPhaseState?
 
-    /// Loads every network (≈ 3.5 GB at the reference precision: fp16 blocks, bf16 encoders).
-    public init(modelsDirectory: URL, remover: BackgroundRemover = VisionBackgroundRemover()) throws {
+    /// Loads every network (≈ 4 GB at the reference precision: fp16 blocks, bf16 DINOv3, fp16 BiRefNet).
+    /// `remover`: `nil` = BiRefNet, the reference's cut-out (`birefnet.safetensors`); `VisionBackgroundRemover()`
+    /// is the weight-free alternative.
+    public init(modelsDirectory: URL, remover: BackgroundRemover? = nil) throws {
         config = try IdolConfig.load(from: IdolWeights.config.localURL(in: modelsDirectory))
         dinov3 = try DINOv3.load(url: EncoderWeights.dinov3(modelsDirectory: modelsDirectory))
         vae = try FluxVAEEncoder.load(url: EncoderWeights.flux2VAE(modelsDirectory: modelsDirectory))
         denoiser = try IdolDenoiser.load(modelsDirectory: modelsDirectory, config: config)
         decoder = try IdolDecoder(modelsDirectory: modelsDirectory)
-        self.remover = remover
+        self.remover = try remover ?? BiRefNetBackgroundRemover(modelsDirectory: modelsDirectory)
         let lora = IdolWeights.turboLoRA.localURL(in: modelsDirectory)
         if FileManager.default.fileExists(atPath: lora.path) {
             let state = try TurboLoRA.inject(into: denoiser, url: lora)

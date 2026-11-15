@@ -2,7 +2,7 @@
 
 Swift / MLX ports of the [speridlabs](https://huggingface.co/speridlabs) models for Apple Silicon, starting with **Idol**: one picture of an object in, up to a million 3D Gaussians out, written as a standard 3DGS `.ply`, with no Python at inference time.
 
-> **Status — 0.2 (2026-11-15): one image → 3D splat, entirely in Swift.** `idol generate --turbo` turns a picture into a 262 144-Gaussian `.ply` in about 25 s on an M3 Max (5 steps, idol-turbo), or ~10 min with the 50-step base model. Every stage is checked against the Python SDK: fp32 anchors bit-exact, DINOv3 1.8e-6, VAE 1.6e-5, 50-step latent 5.9e-3, turbo latent 2.5e-3. **Idol Studio** (`idol-studio`) is the Space on your Mac: same settings and examples, RealityKit 27 splat viewer. Background removal uses Apple Vision for now (BiRefNet port pending).
+> **Status — 0.2 (2026-11-15): one image → 3D splat, entirely in Swift.** `idol generate --turbo` turns a picture into a 262 144-Gaussian `.ply` in about 25 s on an M3 Max (5 steps, idol-turbo), or ~10 min with the 50-step base model. Every stage is checked against the Python SDK: fp32 anchors bit-exact, DINOv3 1.8e-6, VAE 1.6e-5, 50-step latent 5.9e-3, turbo latent 2.5e-3. **Idol Studio** (`idol-studio`) is the Space on your Mac: same settings and examples, RealityKit 27 splat viewer. Background removal is the reference's BiRefNet (alpha within 1e-6 of PyTorch in fp32); Apple Vision is an option.
 
 | Documentation | |
 |---|---|

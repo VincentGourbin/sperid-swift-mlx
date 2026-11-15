@@ -19,6 +19,8 @@ struct GenerateCommand: ParsableCommand {
     @Option(name: .customLong("rescale-t"), help: "Time shift.") var rescaleT = 3.0
     @Option(help: "Gaussians (32 768 … 1 048 576).") var numGaussians = 262_144
     @Option(help: "Guidance: sequential | batched.") var guidance = "sequential"
+    @Option(help: "Background removal for images without alpha: birefnet (the reference) | vision (Apple Vision).")
+    var remover = "birefnet"
     @Flag(help: "idol-turbo: 5 guidance-free steps with the phase LoRAs (overrides --steps and --cfg).") var turbo = false
     @Option(help: "Output folder.") var out = "outputs"
     @Option(help: "Models directory.") var modelsDir: String?
@@ -39,7 +41,7 @@ struct GenerateCommand: ParsableCommand {
             session.beginPhase("1. Load models", category: .modelLoad)
         }
         let loadStart = Date()
-        let pipeline = try IdolPipeline(modelsDirectory: root)
+        let pipeline = try IdolPipeline(modelsDirectory: root, remover: remover == "vision" ? VisionBackgroundRemover() : nil)
         session?.endPhase("1. Load models", category: .modelLoad)
         print(String(format: "loaded in %.1f s", Date().timeIntervalSince(loadStart)))
         let input = try RGBAImage(contentsOf: URL(fileURLWithPath: image))
