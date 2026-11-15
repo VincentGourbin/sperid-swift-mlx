@@ -119,6 +119,12 @@ def main():
         start = time.time()
         descend(octree32, latent, g, num_points, config["max_voxel_level"], "fp32.", out)
         print(f"fp32 descent (cpu): {time.time() - start:.1f} s")
+        # fp32 Gaussian decoder on the reference-precision anchors: the yardstick for fp16 (how far the
+        # reference's own fp16 run sits from fp32, against how far the Swift fp16 run sits)
+        gs32 = load(GaussianFixedlenDecoder(**config["decoder_gs"]["args"]), "decoder_gs", "cpu", fp32=True)
+        start = time.time()
+        out["fp32.features"] = gs32(out["anchors"], latent).float()
+        print(f"fp32 Gaussian decoder (cpu): {time.time() - start:.1f} s")
     m = meta("real_decoders", SEED)
     m.update({"device": device, "steps": str(a.steps), "num_gaussians": str(a.num_gaussians)})
     save_deterministic(out, out_dir / "decoders.safetensors", m)

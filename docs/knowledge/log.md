@@ -13,3 +13,4 @@
 - 2026-11-15 — **T-1.5, octree réel** : descente Swift fp32 = Python fp32 **au bit** (8 192 ancrages, 8 niveaux, tirages rejoués), probabilités à 4e-5. En fp16 la descente bifurque dès le niveau 2 (49 contre 48 cellules) sans erreur de port : recouvrement d'occupation 16³ = 0,978. Piège de fixture : un constructeur amont qui caste en fp16 avant `load_state_dict` rend un `.float()` ultérieur trompeur (poids déjà arrondis).
 - 2026-11-15 — **Repère PyTorch MPS** (pas MLX) : débruiteur 7,2 s par évaluation (L = 12 294, lot 1) sur M3 Max ; décodeurs 9 s à 262 k Gaussiennes.
 - 2026-11-15 — **Accès DINOv3 accordé** ; DINOv3 et `FLUX.2-dev/vae` téléchargés dans le cache HF.
+- 2026-11-15 — **T-1.6, décodeur gaussien réel** : Swift fp32 = Python fp32 à 5e-6 (L2 rel) ; Swift fp16 à 3,4e-3 du fp32 quand le fp16 PyTorch MPS en est à 1,8e-2. Règle : une porte fp16 se calibre sur l'écart fp16/fp32 de la référence, jamais dans l'absolu.

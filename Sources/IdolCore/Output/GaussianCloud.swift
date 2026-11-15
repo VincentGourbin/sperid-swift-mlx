@@ -26,14 +26,14 @@ public struct GaussianCloud: Sendable, Equatable {
     }
 
     /// The activations of `Gaussian.__init__`, from the decoder's raw outputs (CPU reference;
-    /// the MLX path of `T-1.6` is checked against it):
+    /// `GaussianAssembly` is the MLX path, checked against it):
     /// xyz = raw·1 − 0.5 (aabb [-0.5, 1]), scaling = √(softplus(raw + softplus⁻¹(bias))² + k²),
     /// rotation = normalize(raw + (1, 0, 0, 0)), opacity = σ(raw + σ⁻¹(bias)).
     public static func activate(rawXYZ: [Float], featuresDC: [Float], rawScaling: [Float], rawRotation: [Float],
                                 rawOpacity: [Float], scalingBias: Double, opacityBias: Double,
                                 minimumKernelSize: Double) -> GaussianCloud {
-        let scalingOffset = Float(log(expm1(scalingBias)))          // inverse_softplus
-        let opacityOffset = Float(log(opacityBias / (1 - opacityBias)))  // inverse_sigmoid
+        let scalingOffset = GaussianAssembly.scalingOffset(scalingBias)  // inverse_softplus, fp32
+        let opacityOffset = GaussianAssembly.opacityOffset(opacityBias)  // inverse_sigmoid, fp32
         let k2 = Float(minimumKernelSize * minimumKernelSize)
         let xyz = rawXYZ.map { $0 - 0.5 }
         let scaling = rawScaling.map { raw -> Float in

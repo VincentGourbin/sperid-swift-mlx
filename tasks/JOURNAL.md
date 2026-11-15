@@ -43,3 +43,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh TinyOctreeParityTests` → `TESTS OK (3 tests, 0 skippés)` ; `Scripts/check-tests.sh RealDecoderParityTests` → `TESTS OK (3 tests, 0 skippés)` avec `REALOCTREE fp32 cells [8, 49, 213, 910, 3489, 7336, 8132, 8181] exact true leafOverlap 1.0 mismatches []`, `fp32 max |Δp| ≤ 3.9e-5`, `fp16 max |Δp| ≤ 5.3e-3`, `fp16 overlap16 0.978 overlap32 0.907`
 - Limites connues : la porte « au bit » vaut en fp32 ; en fp16 (précision de référence) porte statistique (recouvrement 16³ ≥ 0,97). Débruiteur PyTorch MPS : 358 s pour 50 évaluations (7,2 s chacune), repère non MLX.
 - Pas d'agent : 0 · appels d'outils : 12
+
+## T-1.6 — Décodeur gaussien et `to_representation` — 2026-11-15 — validée
+- Fait : `Models/Decoders/GaussianDecoder.swift` (16 blocs, buffers `points_offset_perturbation`/`base_offset_scale` chargés), `Decoding/GaussianAssembly.swift` (découpe par attribut, offsets, `lr`, activations en MLX, constantes de biais en fp32 comme torch), `GaussianCloud.activate` aligné sur les mêmes constantes ; `Tests/SperidTests/TinyGaussianParityTests.swift` ; trois tests real ; fixture fp32 du décodeur gaussien (CPU, 97 s).
+- Bug réel rencontré : aucun dans le port ; **porte de la fiche mal calibrée** — rel L2 ≤ 1e-3 en fp16 est sous le bruit du fp16 de la référence elle-même (Python MPS fp16 à 1,8e-2 de son fp32). Portes recalibrées (voir la fiche).
+- Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh TinyGaussianParityTests` → `TESTS OK (1 tests, 0 skippés)` ; `Scripts/check-tests.sh RealDecoderParityTests` → `TESTS OK (6 tests, 0 skippés)` avec `REALGAUSS fp32 relL2 4.96964e-06`, `REALGAUSS fp16 vs fp32: swift 0.003381391 python 0.01822612`, `REALGAUSS assembly worst relMax 1.1920964e-07`
+- Limites connues : temps du forward à 8 192 / 32 768 ancrages non profilé (à faire avec le protocole de mesure, pas en test) ; 1 M de Gaussiennes non essayé.
+- Pas d'agent : 0 · appels d'outils : 6

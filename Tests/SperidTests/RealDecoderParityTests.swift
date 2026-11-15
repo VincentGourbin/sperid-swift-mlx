@@ -94,4 +94,49 @@ struct RealDecoderParityTests {
         print("REALOCTREE fp16 cells \(r.stats.map(\.cells)) overlap16 \(o16) overlap32 \(o32)")
         #expect(o16 >= 0.97)
     }
+
+    static func gaussian(_ dtype: DType) throws -> GaussianDecoder {
+        let d = GaussianDecoder(config: try RealFixtures.config().decoderGS, blockDType: dtype)
+        let weights = try loadArrays(url: IdolWeights.gaussianDecoder.localURL(in: RealFixtures.root))
+        try ModuleLoading.load(d, from: weights, dtype: ModuleLoading.referencePrecision(blockDType: dtype))
+        return d
+    }
+
+    static func relL2(_ a: MLXArray, _ b: MLXArray) -> Float {
+        (sqrt(sum(square(a.asType(.float32) - b))) / sqrt(sum(square(b)))).item(Float.self)
+    }
+
+    /// fp32 against fp32: the port itself.
+    @Test func gaussianDecoderFP32MatchesPython() throws {
+        let f = RealFixtures.arrays
+        let features = try Self.gaussian(.float32)(f["anchors"]!, latent: f["latent"]!)
+        let r = Self.relL2(features, f["fp32.features"]!)
+        print("REALGAUSS fp32 relL2 \(r)")
+        #expect(r < 1e-4)
+    }
+
+    /// fp16 (reference precision): the yardstick is the reference's own fp16 error. Python fp16 (MPS)
+    /// sits 1.8e-2 from fp32 (measured 2026-11-15); Swift fp16 must not sit farther than 1.5× that.
+    @Test func gaussianDecoderFP16WithinReferenceNoise() throws {
+        let f = RealFixtures.arrays
+        let features = try Self.gaussian(.float16)(f["anchors"]!, latent: f["latent"]!)
+        let swift = Self.relL2(features, f["fp32.features"]!)
+        let python = Self.relL2(f["features"]!, f["fp32.features"]!)
+        print("REALGAUSS fp16 vs fp32: swift \(swift) python \(python)")
+        #expect(swift <= 1.5 * python)
+    }
+
+    /// Assembly + activations in MLX on the reference's raw outputs reproduce the reference cloud.
+    @Test func assemblyMatchesReferenceCloud() throws {
+        let f = RealFixtures.arrays
+        let cloud = GaussianAssembly.assemble(anchors: f["anchors"]!, features: f["features"]!,
+                                              decoder: try Self.gaussian(.float16))
+        var worst: Float = 0
+        for (name, values) in [("xyz", cloud.xyz), ("scaling", cloud.scaling), ("rotation", cloud.rotation),
+                               ("opacity", cloud.opacity), ("features_dc", cloud.featuresDC)] {
+            worst = max(worst, TinyParity.relMax(MLXArray(values), f[name]!.reshaped(-1)))
+        }
+        print("REALGAUSS assembly worst relMax \(worst)")
+        #expect(worst < 1e-5)
+    }
 }
