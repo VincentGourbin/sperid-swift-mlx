@@ -158,7 +158,7 @@ final class StudioModel {
                 let image = try RGBAImage(contentsOf: url)
                 var noise = SeededNoise(seed: request.seed)
                 let output = try box.pipeline!.generate(
-                    image: image, request: request, noise: &noise, useTurbo: useTurbo,
+                    image: image, request: request, noise: &noise, useTurbo: useTurbo, memory: .fromEnvironment,
                     isCancelled: { [weak self] in MainActor.assumeIsolatedOrFalse { self?.cancelFlag ?? false } },
                     progress: { p in Task { @MainActor in self?.stage = p.stage; self?.fraction = p.fraction } })
                 let name = url.deletingPathExtension().lastPathComponent + "-seed\(request.seed)"

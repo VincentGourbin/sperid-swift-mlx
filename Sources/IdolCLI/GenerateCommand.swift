@@ -47,6 +47,7 @@ struct GenerateCommand: ParsableCommand {
         var lastStage = ""
         let output = try pipeline.generate(image: input, request: request, noise: &noise,
                                            guidance: guidance == "batched" ? .batched : .sequential, useTurbo: turbo,
+                                           memory: .fromEnvironment,
                                            progress: { p in
             if p.stage.rawValue != lastStage { print("  \(p.stage.rawValue)…"); lastStage = p.stage.rawValue }
         })

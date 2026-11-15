@@ -23,7 +23,13 @@ struct ProfileCommand: ParsableCommand {
     @Option(help: "Models directory.") var modelsDir: String?
 
     func run() throws {
-        guard stage == "denoiser" || stage == "denoiser-ops" else { throw ValidationError("unknown stage \(stage) (denoiser | denoiser-ops)") }
+        guard ["denoiser", "denoiser-ops", "vae-peaks"].contains(stage) else { throw ValidationError("unknown stage \(stage) (denoiser | denoiser-ops | vae-peaks)") }
+        if stage == "vae-peaks" {
+            let r = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? ModelsDirectory.resolve()
+            let vae = try FluxVAEEncoder.load(url: EncoderWeights.flux2VAE(modelsDirectory: r))
+            for (name, gb, ms) in VAEPeaks.run(vae) { print(String(format: "  %-44@ peak %6.2f GB  %7.1f ms", name as NSString, gb, ms)) }
+            return
+        }
         let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? ModelsDirectory.resolve()
         let config = try IdolConfig.load(from: IdolWeights.config.localURL(in: root))
         let session = ProfilingSession(config: .singleRun)

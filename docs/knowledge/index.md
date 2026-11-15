@@ -8,7 +8,8 @@ Journal d'ingénierie du portage (bundle OKF). `log.md` porte l'historique horod
 sous-répertoires accumulent les conclusions durables.
 
 ## Benchmarks
-Mesures reproductibles (état des horloges GPU, écart ±2 %). Rien pour l'instant : coûts attendus dans `plan/03-budget.md`.
+Mesures reproductibles (état des horloges GPU, écart ±2 %).
+- [Profil M3 Max du pipeline Swift](benchmarks/m3max-profile-2026-11-15.md) — turbo 22 s (débruitage 77 %, GPU 100 %, aucun goulot CPU) ; bloc joint : SDPA 59 % ; fusion rotation+RMSNorm −4 % exacte ; cache 2 Go : pic process 34 → 11 Go ; pic MLX 11 Go = convolution pleine résolution du VAE (im2col).
 
 ## Decisions
 - [Source des poids des encodeurs](decisions/weights-source.md) — DINOv3 gated sans accès au 2026-11-15 ; dépôt officiel recommandé, repack Comfy en repli ; FLUX.2-dev accessible, encodeur aussi présent en local.

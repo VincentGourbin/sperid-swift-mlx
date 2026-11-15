@@ -22,3 +22,7 @@ un run de `idol generate --profile` (ou d'une étape seule : `idol denoise|decod
 | 2026-11-15 19:38 | 5088eaa | M3 Max 96 Go | denoiser fp16, lot 2 (B1) | idem | 1 forward × 3 | — | — | 7,21 ± 0,25 (3,61 / échantillon) | — | — | 2,75 MLX / 7,28 process | idem, trace-b2.json |
 | 2026-11-15 19:40 | 5088eaa | M3 Max 96 Go | denoiser fp16, lot 2 (B2) | idem | 1 forward × 3 | — | — | 7,03 ± 0,55 (3,52 / échantillon) | — | — | 2,71 MLX / 7,28 process | idem |
 | 2026-11-15 19:42 | 5088eaa | M3 Max 96 Go | denoiser fp16, lot 1 (A2) | idem | 1 forward × 3 | — | — | 3,36 ± 0,11 | — | — | 2,06 MLX / 4,98 process | idem |
+| 2026-11-15 21:23 | 6e12344 | M3 Max 96 Go | turbo 5 pas, cache illimité | fig-fox | 5 | 262 144 | 2,0 | 19,2 | 2,3 | 24,9 | 11,0 MLX / 34,3 process | `.local-runs/bench.noindex/profile-turbo/` (en session) |
+| 2026-11-15 21:33 | 6e12344 | M3 Max 96 Go | base 50 pas CFG 3, cache illimité | fig-fox | 50 | 262 144 | 2,1 | 464,2 | 3,1 | 470,7 | 11,0 MLX / 34,4 process | `profile-base/` (en session) |
+| 2026-11-15 22:05 | 6e12344 | M3 Max 96 Go | turbo, fusion, cache illimité (A2) | fig-fox | 5 | 262 144 | 1,9 | 16,9 | 2,1 | 22,2 | 11,0 MLX / 33,8 process | `profile-mem-0/` (en session, backupd) |
+| 2026-11-15 22:03 | 6e12344 | M3 Max 96 Go | turbo, fusion, cache 2 Go (B2) | fig-fox | 5 | 262 144 | 2,0 | 17,0 | 2,2 | 22,7 | 11,0 MLX / 11,3 process | `profile-mem-2048/` (en session, backupd) |

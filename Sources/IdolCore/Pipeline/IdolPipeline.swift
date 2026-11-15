@@ -86,9 +86,12 @@ public final class IdolPipeline {
 
     public func generate<N: NoiseSource>(image: RGBAImage, request: IdolRequest = .init(), noise: inout N,
                                          guidance: FlowSampler.Guidance = .sequential, useTurbo: Bool = false,
+                                         memory: IdolMemoryPolicy = .unbounded,
                                          isCancelled: () -> Bool = { false },
                                          progress: (IdolProgress) -> Void = { _ in }) throws -> IdolOutput {
         try request.validate()
+        let previousCacheLimit = memory.apply()
+        defer { memory.restore(previousCacheLimit) }
         if useTurbo && turbo == nil {
             throw SperidError.missingFile("idol-turbo LoRA (run `idol download --turbo`)")
         }
@@ -106,6 +109,7 @@ public final class IdolPipeline {
         if isCancelled() { throw CancellationError() }
         progress(.init(stage: .encoding, fraction: 0))
         let condition = timed("encode") { self.condition(prepared, noise: &noise) }
+        memory.stageDone()
         let d = config.denoiser
         let latentNoise = noise.latentNoise(shape: [1, d.qTokenLength, d.inChannels])
         let cameraNoise = noise.cameraNoise(shape: [1, 1, d.camChannels])
@@ -120,8 +124,10 @@ public final class IdolPipeline {
         if isCancelled() { throw CancellationError() }
         progress(.init(stage: .decoding, fraction: 0))
         turbo?.phase = nil
+        memory.stageDone()
         let cloud = timed("decode") { decoder.decode(latent: sample.latent, numGaussians: request.numGaussians, noise: &noise).cloud }
         let camera = CameraPose(latent: sample.camera.reshaped(-1).asArray(Float.self))
+        memory.stageDone()
         progress(.init(stage: .done, fraction: 1))
         return IdolOutput(cloud: cloud, preprocessed: prepared, camera: camera, timings: timings)
     }

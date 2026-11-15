@@ -133,8 +133,11 @@ final class VAEEncoderNet: Module {
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
         var h = convIn(x)
-        for block in downBlocks { h = block(h) }
+        // evaluate block by block: one lazy graph at 1024² kept every full-resolution intermediate alive
+        // (MLX active peak 11 GB during this encoder, `idol generate --profile`, 2026-11-15)
+        for block in downBlocks { h = block(h); eval(h) }
         h = midBlock(h)
+        eval(h)
         return convOut(silu(normOut(h)))
     }
 }
