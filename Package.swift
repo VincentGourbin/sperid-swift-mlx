@@ -15,6 +15,8 @@ let package = Package(
         .library(name: "IdolCore", targets: ["IdolCore"]),
         // MARK: - CLI Tools
         .executable(name: "idol", targets: ["IdolCLI"]),
+        /// macOS 27 app: the speridlabs/idol Space locally (RealityKit Gaussian splats).
+        .executable(name: "idol-studio", targets: ["IdolStudio"]),
     ],
     dependencies: [
         // Pinned exact: mlx-swift has broken API in patch releases before; bump deliberately.
@@ -51,6 +53,10 @@ let package = Package(
                 "SperidCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
+        ),
+        .executableTarget(
+            name: "IdolStudio",
+            dependencies: ["IdolCore", "SperidCore"]
         ),
         // MARK: - Tests
         .testTarget(
