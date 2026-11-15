@@ -38,6 +38,17 @@ final class PhaseLoRALinear: Linear {
 }
 
 public enum TurboLoRA {
+    /// Evaluates the experts held outside `parameters()` (MLX-004: no lazy array crosses threads).
+    public static func materialise(_ denoiser: IdolDenoiser) {
+        for blocks in [denoiser.noiseRefiner, denoiser.contextRefiner, denoiser.blocks] {
+            for b in blocks {
+                for l in [b.attn.qkv, b.attn.out, b.mlp.mlp[0], b.mlp.mlp[2]] {
+                    if let p = l as? PhaseLoRALinear { eval(p.slow.a, p.slow.b, p.fast.a, p.fast.b) }
+                }
+            }
+        }
+    }
+
     public static let rank = 32
     public static let alpha: Float = 128
 

@@ -4,6 +4,7 @@
 import ArgumentParser
 import Foundation
 import IdolCore
+import MLXProfiler
 import SperidCore
 
 struct GenerateCommand: ParsableCommand {
@@ -21,14 +22,25 @@ struct GenerateCommand: ParsableCommand {
     @Flag(help: "idol-turbo: 5 guidance-free steps with the phase LoRAs (overrides --steps and --cfg).") var turbo = false
     @Option(help: "Output folder.") var out = "outputs"
     @Option(help: "Models directory.") var modelsDir: String?
+    @Option(help: "Profile with swift-mlx-profiler (fineGrained): writes report.txt and trace.json into this folder.")
+    var profile: String?
 
     func run() throws {
         let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? ModelsDirectory.resolve()
         guard let cropMode = IdolCropMode(rawValue: mode) else { throw ValidationError("--mode synthetic|real") }
         let request = IdolRequest(mode: cropMode, seed: seed, steps: turbo ? 5 : steps, cfgStrength: turbo ? 0 : cfg,
                                   rescaleT: rescaleT, numGaussians: numGaussians)
+        let session = profile.map { _ in ProfilingSession(config: .fineGrained) }
+        if let session {
+            session.title = "idol generate"
+            session.metadata = ["image": image, "turbo": "\(turbo)", "steps": "\(request.steps)", "gaussians": "\(numGaussians)"]
+            MLXProfiler.shared.enable()
+            MLXProfiler.shared.activeSession = session
+            session.beginPhase("1. Load models", category: .modelLoad)
+        }
         let loadStart = Date()
         let pipeline = try IdolPipeline(modelsDirectory: root)
+        session?.endPhase("1. Load models", category: .modelLoad)
         print(String(format: "loaded in %.1f s", Date().timeIntervalSince(loadStart)))
         let input = try RGBAImage(contentsOf: URL(fileURLWithPath: image))
         var noise = SeededNoise(seed: seed)
@@ -39,7 +51,18 @@ struct GenerateCommand: ParsableCommand {
             if p.stage.rawValue != lastStage { print("  \(p.stage.rawValue)…"); lastStage = p.stage.rawValue }
         })
         let name = URL(fileURLWithPath: image).deletingPathExtension().lastPathComponent
+        session?.beginPhase("8. Write .ply / png / json", category: .postProcess)
         try output.write(to: URL(fileURLWithPath: out), name: name)
+        session?.endPhase("8. Write .ply / png / json", category: .postProcess)
+        if let session, let profile {
+            session.finish()
+            let report = session.generateReport()
+            print(report)
+            let dir = URL(fileURLWithPath: profile)
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try report.write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
+            try ChromeTraceExporter.export(session: session).write(to: dir.appendingPathComponent("trace.json"))
+        }
         let t = output.timings
         print(String(format: "GENERATE OK %@: %d Gaussians — preprocess %.1f s, encode %.1f s, denoise %.1f s, decode %.1f s → %@/%@.ply",
                      name, output.cloud.count, t["preprocess"] ?? 0, t["encode"] ?? 0, t["denoise"] ?? 0, t["decode"] ?? 0, out, name))

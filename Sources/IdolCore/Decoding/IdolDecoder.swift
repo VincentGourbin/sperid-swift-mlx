@@ -28,6 +28,7 @@ public final class IdolDecoder {
             }
             try contract.verify(SafetensorsHeader(contentsOf: url))
             try ModuleLoading.load(module, from: loadArrays(url: url), dtype: precision)
+            eval(module.parameters())  // MLX-004: materialised on the loading thread
         }
     }
 
@@ -41,11 +42,16 @@ public final class IdolDecoder {
     public func decode<N: NoiseSource>(latent: MLXArray, numGaussians: Int = 262_144, noise: inout N) -> Output {
         let perAnchor = config.decoderGS.representationConfig.numGaussians
         let numPoints = max(1, numGaussians / perAnchor)
-        let descent = OctreeDescent.descend(decoder: octree, latent: latent, numPoints: numPoints,
-                                            levels: config.maxVoxelLevel, noise: &noise)
+        let descent = IdolProfiling.phase("5. Octree descent (8 levels)", .decoding) {
+            OctreeDescent.descend(decoder: octree, latent: latent, numPoints: numPoints, levels: config.maxVoxelLevel, noise: &noise)
+        }
         let anchors = MLXArray(descent.anchors, [1, numPoints, 3])
-        let features = gaussian(anchors, latent: latent)
-        let cloud = GaussianAssembly.assemble(anchors: anchors, features: features, decoder: gaussian)
+        let features = IdolProfiling.phase("6. Gaussian decoder (\(numPoints) anchors)", .decoding) {
+            let f = gaussian(anchors, latent: latent); eval(f); return f
+        }
+        let cloud = IdolProfiling.phase("7. Assembly + activations", .postProcess) {
+            GaussianAssembly.assemble(anchors: anchors, features: features, decoder: gaussian)
+        }
         return Output(cloud: cloud, anchors: anchors, levels: descent.stats)
     }
 }

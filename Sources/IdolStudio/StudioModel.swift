@@ -12,6 +12,37 @@ final class PipelineBox: @unchecked Sendable {
     var pipeline: IdolPipeline?
 }
 
+/// One long-lived thread for every MLX call of the app. A serial DispatchQueue keeps the order but not
+/// the thread, and mlx-swift must build and evaluate a graph on the same thread (MLX-004): loading on one
+/// pool thread then generating on another crashed in the Metal command encoder (2026-11-15).
+final class MLXWorker: @unchecked Sendable {
+    private let condition = NSCondition()
+    private var jobs: [() -> Void] = []
+    private var thread: Thread!
+
+    init(name: String) {
+        thread = Thread { [unowned self] in self.loop() }
+        thread.name = name
+        thread.qualityOfService = .userInitiated
+        thread.stackSize = 16 << 20
+        thread.start()
+    }
+
+    func async(_ job: @escaping () -> Void) {
+        condition.lock(); jobs.append(job); condition.signal(); condition.unlock()
+    }
+
+    private func loop() {
+        while true {
+            condition.lock()
+            while jobs.isEmpty { condition.wait() }
+            let job = jobs.removeFirst()
+            condition.unlock()
+            autoreleasepool { job() }
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class StudioModel {
@@ -45,7 +76,7 @@ final class StudioModel {
 
     let root = ModelsDirectory.resolve()
     private let box = PipelineBox()
-    private let worker = DispatchQueue(label: "idol.pipeline", qos: .userInitiated)
+    private let worker = MLXWorker(name: "idol.mlx")
     private var cancelFlag = false
 
     func start() {

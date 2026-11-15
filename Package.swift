@@ -52,6 +52,7 @@ let package = Package(
                 "IdolCore",
                 "SperidCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "MLXProfiler", package: "swift-mlx-profiler"),
             ]
         ),
         .executableTarget(

@@ -44,6 +44,7 @@ public enum FlowSampler {
         let w = Float(cfgStrength)
         for i in 0..<schedule.steps {
             if isCancelled() { throw CancellationError() }
+            let stepStart = IdolProfiling.now()
             let (t, next) = schedule.interval(i)
             // idol-turbo: the slow expert while t ≥ 0.5, the fast one below (`turbo.py`)
             turbo?.phase = schedule.turboPhase(i)
@@ -69,6 +70,7 @@ public enum FlowSampler {
             x = x - vx * dt
             cam = cam - vc * dt
             eval(x, cam)
+            IdolProfiling.step(i, of: schedule.steps, since: stepStart)
             observe(i, x, cam)
         }
         return (x, cam)

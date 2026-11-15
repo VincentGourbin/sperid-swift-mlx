@@ -23,7 +23,7 @@ struct ProfileCommand: ParsableCommand {
     @Option(help: "Models directory.") var modelsDir: String?
 
     func run() throws {
-        guard stage == "denoiser" else { throw ValidationError("unknown stage \(stage) (denoiser)") }
+        guard stage == "denoiser" || stage == "denoiser-ops" else { throw ValidationError("unknown stage \(stage) (denoiser | denoiser-ops)") }
         let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? ModelsDirectory.resolve()
         let config = try IdolConfig.load(from: IdolWeights.config.localURL(in: root))
         let session = ProfilingSession(config: .singleRun)
@@ -36,6 +36,15 @@ struct ProfileCommand: ParsableCommand {
         let model = try IdolDenoiser.load(modelsDirectory: root, config: config, blockDType: fp32 ? .float32 : .float16)
         session.endPhase("1. Load", category: .modelLoad)
 
+        if stage == "denoiser-ops" {
+            let ops = DenoiserOps(model: model, runs: runs)
+            let rows = ops.run(tokens: config.jointTokenCount)
+            session.finish()
+            print("OPS one joint block, \(config.jointTokenCount) tokens, fp16 blocks (median of \(runs), warm-up excluded):")
+            let whole = rows.last!.1
+            for (name, ms) in rows { print(String(format: "  %-40@ %8.2f ms  %5.1f %%  ×24 = %6.0f ms", name as NSString, ms, 100 * ms / whole, 24 * ms)) }
+            return
+        }
         let lc = config.conditionTokenCount, d = config.denoiser
         let key = MLXRandom.key(0)
         let z = MLXRandom.normal([batch, d.qTokenLength, d.inChannels], key: key)

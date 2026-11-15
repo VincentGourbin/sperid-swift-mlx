@@ -74,12 +74,20 @@ public enum OctreeDescent {
     /// The network path: `decoder` forward + softmax per level, on one object (B = 1).
     public static func descend<N: NoiseSource>(decoder: OctreeDecoder, latent: MLXArray, numPoints: Int, levels: Int,
                                                noise: inout N) -> (anchors: [Float], stats: [LevelStats]) {
-        descend(numPoints: numPoints, levels: levels, noise: &noise) { centres, resolution in
+        var gpuUs: UInt64 = 0
+        let start = IdolProfiling.now()
+        let result = descend(numPoints: numPoints, levels: levels, noise: &noise) { centres, resolution in
+            let t0 = IdolProfiling.now()
             let n = centres.count / 3
             let x = MLXArray(centres, [1, n, 3])
             let logits = decoder(x, resolution: MLXArray([Float(resolution)]), latent: latent)
             let flat = softmax(logits.asType(.float32), axis: -1, precise: true).asArray(Float.self)
+            gpuUs += (IdolProfiling.now() - t0) / 1000
             return (0..<n).map { Array(flat[(8 * $0)..<(8 * $0 + 8)]) }
         }
+        let totalUs = (IdolProfiling.now() - start) / 1000
+        IdolProfiling.complete("5a. octree forwards + readback (GPU)", .decoding, microseconds: gpuUs)
+        IdolProfiling.complete("5b. octree split + compaction (CPU)", .decoding, microseconds: totalUs - gpuUs)
+        return result
     }
 }
