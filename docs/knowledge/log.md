@@ -14,3 +14,4 @@
 - 2026-11-15 — **Repère PyTorch MPS** (pas MLX) : débruiteur 7,2 s par évaluation (L = 12 294, lot 1) sur M3 Max ; décodeurs 9 s à 262 k Gaussiennes.
 - 2026-11-15 — **Accès DINOv3 accordé** ; DINOv3 et `FLUX.2-dev/vae` téléchargés dans le cache HF.
 - 2026-11-15 — **T-1.6, décodeur gaussien réel** : Swift fp32 = Python fp32 à 5e-6 (L2 rel) ; Swift fp16 à 3,4e-3 du fp32 quand le fp16 PyTorch MPS en est à 1,8e-2. Règle : une porte fp16 se calibre sur l'écart fp16/fp32 de la référence, jamais dans l'absolu.
+- 2026-11-15 — **T-2.5** : attention non matérialisée à L = 12 294 (lot 2 = +0,7 Go, pas +4,8 Go) ; forward fp16 3,36-5,76 s (A1/A2 à 70 % d'écart : horloges GPU, à remesurer), ≈ 6,5 TFLOPS au meilleur point, sous la fourchette CALCUL. MLX 2,1× PyTorch MPS. **T-2.6** : 50 pas CFG Swift = Python à 5,9e-3 sur l'avocat réel.

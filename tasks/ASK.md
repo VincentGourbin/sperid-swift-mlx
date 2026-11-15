@@ -26,3 +26,11 @@ Gabarit dans `AGENTS.md` §6. Une réponse est datée et recopiée sous la quest
 
 ### Réponse de Vincent — 2026-11-15
 - G-1 : **A** — même objet. On passe au Jalon 2, **avec de vrais objets** désormais : les fixtures du débruiteur et des étapes suivantes partent d'images de la galerie (DINOv3 accessible), plus de latent non conditionné.
+
+## ASK — T-2.7 ⛔ G-2 — 2026-11-15
+- Contexte : Jalon 2 terminé sur un **objet réel** (l'avocat de la galerie). Conditionnement réel calculé par Python (DINOv3 + VAE), puis tout le reste en Swift : 50 pas CFG 3 → latent final à 5,9e-3 de Python, caméra identique → octree → Gaussiennes → `.ply`.
+- Question : l'avocat Swift et l'avocat Python sont-ils le même objet dans le viewer ?
+  - Python : `~/Library/Caches/models/parity/avocado_fixture.ply` (même bruit de départ que Swift) ; image vue par le modèle : `.local-runs/sdk/avocado_input.png`
+  - Swift : `.local-runs/parity/avocado_swift.ply`
+- Options : A) même objet → Jalon 3 (encodeurs DINOv3 + VAE en Swift, puis l'image entière en Swift) ; B) différence visible (décrire).
+- Point de mesure (T-2.5) : pas de risque mémoire (attention fusionnée) ; temps par évaluation 3,4-5,8 s selon l'état du GPU, à remesurer proprement avant d'optimiser.

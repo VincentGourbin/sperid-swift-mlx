@@ -64,3 +64,33 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh TinyDenoiserParityTests` → `TESTS OK (6 tests, 0 skippés)` (`TINYDIT latent 6.177498e-07 camera 5.804212e-07`) ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
 - Limites connues : chemin complexe (`real_valued = False`, MPS) non porté — la forme réelle (cos, sin) est la même rotation.
 - Pas d'agent : 0 · appels d'outils : 6
+
+## T-2.4 — `LatentSeqMMFlowModel` réel + chargeur (560 tenseurs) — 2026-11-15 — validée
+- Fait : `IdolDenoiser.load` (contrat vérifié, Linear des `blocks`/`noise_refiner`/`context_refiner` en fp16, reste fp32) ; `Scripts/reference/denoiser_fixtures.py` (**objet réel** : avocat de la galerie, prétraitement + DINOv3 + VAE du SDK, bruit graine 0, forward t = 1000 en fp16 MPS et fp32 CPU sur les deux branches, trajectoire 50 pas CFG 3 avec points de contrôle par hook, `.ply` décodé par le SDK) ; `Tests/SperidTests/RealDenoiserParityTests.swift`.
+- Bug réel rencontré : aucun dans le port. Seuil fp32 initial (1e-4) trop serré : 30 blocs sur 12 294 jetons, ordre de sommation CPU torch ≠ GPU MLX → 7,7e-5 (cond) et 2,6e-4 (neg) ; seuil 5e-4, quatre fois sous le bruit fp16.
+- Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh RealDenoiserParityTests` → `TESTS OK (2 tests, 0 skippés)` avec `REALDIT fp32 cond latent 7.684536e-05 camera 1.1688283e-05`, `REALDIT fp32 neg latent 0.00025806317 camera 2.7549675e-05`, `REALDIT fp16 cond vs fp32: swift 0.0011472855 python 0.0011109156`, `REALDIT fp16 neg vs fp32: swift 0.0010723813 python 0.0011968968`
+- Limites connues : référence fp16 sur MPS (pas CUDA) ; une seule image.
+- Pas d'agent : 0 · appels d'outils : 6
+
+## T-2.6 — Échantillonneur Euler + CFG — 2026-11-15 — validée
+- Fait : `Sampling/FlowSampler.swift` (`IdolCondition` + `negative` = zéros avant projections, CFG séquentiel ou batché, annulation avant chaque pas, une synchronisation par pas, observateur de pas) ; `idol parity denoise` (`IdolCLI/ParityDenoise.swift`).
+- Bug réel rencontré : aucun.
+- Validation : `Scripts/check-parity.sh denoise` → `PARITY OK denoise.final latent relL2=0.0058743255 camera relL2=0.0010423532` ; trajectoire `step 10 relL2=0.00014134933`, `step 25 relL2=0.0005064725`, `step 49 relL2=0.0055004708` ; caméra `swift yaw 1.410 pitch 0.355 fov 0.12 | python yaw 1.409 pitch 0.355 fov 0.12` ; `PARITY OK denoise (final latent relL2 0.0058743255)`
+- Limites connues : CFG batché non encore comparé (même formule ; à décider en T-2.5) ; 491 s pour 100 évaluations dans la parité (pas une mesure : voir T-2.5).
+- Pas d'agent : 0 · appels d'outils : 2
+
+## T-2.5 — Mesure : un forward L = 12 294, lot 1 et 2 — 2026-11-15 — validée (décision mémoire), temps à remesurer
+- Fait : `idol profile denoiser [--batch 1|2] [--runs N]` (`IdolCLI/ProfileCommand.swift`, swift-mlx-profiler, entrées aléatoires aux formes réelles, 1 forward d'échauffement) ; A/B/B/A avec 90 s de refroidissement, GPU libre (pgrep).
+- Mesure : lot 1 = 5,76 s (A1) puis 3,36 s (A2) ; lot 2 = 7,21 et 7,03 s, soit 3,61 et 3,52 s par échantillon. Pic MLX 2,06 Go (lot 1) / 2,75 Go (lot 2).
+- **Décision (mémoire, robuste)** : l'attention n'est **pas** matérialisée — le lot 2 coûte +0,7 Go, pas les +4,8 Go de scores attendus s'ils l'étaient (`plan/03-budget.md` §3.3). Le CFG batché tient sans risque mémoire, même en profil économe.
+- **Temps (fragile)** : A1/A2 diffèrent de 70 %, hors de la dispersion ±2 % du protocole — état des horloges GPU. Le meilleur point (3,36 s ≈ 6,5 TFLOPS effectifs sur 22 TFLOP) est sous la fourchette CALCUL (7-15 TFLOPS) ; batché ≈ séquentiel par échantillon, gain non démontré. Remesure longue (plus de runs, échantillon de contrôle) avant toute conclusion de vitesse.
+- Validation : `idol profile denoiser --batch 1|2 --runs 3` → `PROFILE denoiser batch=1 peak_mlx=2.16 GB`, `PROFILE denoiser batch=2 peak_mlx=2.89 GB` (×2 chacun) ; lignes ajoutées à `BENCHMARKS.md`
+- Repère : PyTorch MPS 7,2 s par forward (même machine, T-1.5) → MLX 2,1× plus rapide au meilleur point.
+- Pas d'agent : 0 · appels d'outils : 3
+
+## T-2.7 — `idol denoise` → latent ; chaîne avec le décodage → `.ply` ⛔ G-2 — 2026-11-15 — validée (GATE G-2 posée)
+- Fait : `IdolCLI/DenoiseCommand.swift` (`idol denoise --cond … --out latent.safetensors [--ply x.ply] [--noise …] [--guidance sequential|batched]`) ; `idol parity denoise` écrit l'avocat décodé tout en Swift.
+- Bug réel rencontré : aucun.
+- Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-parity.sh denoise` → `PARITY OK denoise (final latent relL2 0.0058743255)` ; `.local-runs/parity/avocado_swift.ply` (262 144 Gaussiennes)
+- Limites connues : le conditionnement vient encore de Python (DINOv3 + VAE : Jalon 3).
+- Pas d'agent : 0 · appels d'outils : 2

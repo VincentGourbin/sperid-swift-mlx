@@ -15,10 +15,10 @@
 | T-2.1 | `SinusoidalEmbedder` (cos/sin, t·1000), `PcdAbsolutePositionEmbedder` v1, MLP caméra | `plan/05-jalon2.md` | T-1.7 | validée |
 | T-2.2 | `RePo3DRotaryEmbedding` + rotation par paires entrelacées (piège 1-2) | `plan/05-jalon2.md` | T-2.1 | validée |
 | T-2.3 | `RopeMultiHeadAttention`, `UnifiedTransformerBlock` (modulé / non modulé) | `plan/05-jalon2.md` | T-2.2 | validée |
-| T-2.4 | `LatentSeqMMFlowModel` complet + loader (560 tenseurs, fp16 des blocs, fp32 ailleurs) | `plan/05-jalon2.md` | T-2.3 | à faire |
-| T-2.5 | **Mesure** : un forward L = 12 294, lot 1 et 2 — temps, pic MLX, SDPA fusionné ou non | `plan/05-jalon2.md` | T-2.4 | à faire |
-| T-2.6 | Échantillonneur Euler + CFG (séquentiel et batché), annulable, une synchro par pas (IT-2) | `plan/05-jalon2.md` | T-2.5 | à faire |
-| T-2.7 | `idol denoise --cond cond.safetensors` → latent ; chaîne avec T-1.7 → `.ply` ⛔ G-2 | `plan/05-jalon2.md` | T-2.6 | à faire |
+| T-2.4 | `LatentSeqMMFlowModel` complet + loader (560 tenseurs, fp16 des blocs, fp32 ailleurs) | `plan/05-jalon2.md` | T-2.3 | validée |
+| T-2.5 | **Mesure** : un forward L = 12 294, lot 1 et 2 — temps, pic MLX, SDPA fusionné ou non | `plan/05-jalon2.md` | T-2.4 | validée (temps à remesurer) |
+| T-2.6 | Échantillonneur Euler + CFG (séquentiel et batché), annulable, une synchro par pas (IT-2) | `plan/05-jalon2.md` | T-2.5 | validée |
+| T-2.7 | `idol denoise --cond cond.safetensors` → latent ; chaîne avec T-1.7 → `.ply` ⛔ G-2 | `plan/05-jalon2.md` | T-2.6 | validée (GATE G-2 posée) |
 | T-3.1 | Décision de source DINOv3 (G-0) appliquée ; relire les clés du dépôt choisi | `plan/06-jalon3.md` | T-2.7, G-0 | à faire |
 | T-3.2 | DINOv3 ViT-H+/16 (patch embed, registres, RoPE 2D `rotate_half`, layerscale, gated SiLU) + layer_norm final d'Idol | `plan/06-jalon3.md` | T-3.1 | à faire |
 | T-3.3 | Encodeur VAE FLUX.2 copié de `flux-2-swift-mlx` (encodeur seul) ; vérification des valeurs (Comfy = local `FLUX.2-small-decoder` = `FLUX.2-dev`) | `plan/06-jalon3.md` | T-3.2 | à faire |
