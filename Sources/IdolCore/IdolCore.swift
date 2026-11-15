@@ -14,5 +14,5 @@
 ///    anchor (`Models/Decoders`, Jalon 1);
 /// 5. write — activations, `.ply`, camera (`Output/`).
 public enum IdolCore {
-    public static let version = "0.3.0"
+    public static let version = "0.3.1"
 }

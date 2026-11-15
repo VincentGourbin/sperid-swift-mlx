@@ -8,7 +8,9 @@
 - D-3 **Octree sur CPU**, 8 forwards GPU : formes dépendantes des données.
 - D-4 **Bruit injectable partout** (`NoiseSource`) : condition de toute parité.
 - D-5 **Ordre des Jalons par vérifiabilité** : décodeurs → débruiteur → encodeurs → prétraitement → turbo → profils.
-- D-6 mlx-swift **0.32.3 exact** (dernière montée d'un dépôt frère, gemma-4-swift-mlx) ; profiler ≥ 1.5.1.
+- D-6 mlx-swift : 0.32.3 exact jusqu'à la v0.3.0 ; **plage `0.31.6..<0.33.0` depuis la v0.3.1** (demande de
+  Fluxforge Studio, dont flux-2 et yue2 épinglent 0.31.6 exact : un `exact` ici rendait l'intégration
+  irrésoluble). Les deux bornes sont validées sur vrais poids ; `Package.resolved` suit 0.31.6. Profiler ≥ 1.5.1.
 - D-7 Dépôt GitHub **public depuis le 2026-11-15** (demande de Vincent, version 0.3.0), audit préalable de tout
   l'historique (aucun chemin absolu, jeton, poids ni image personnelle) ; `THIRD_PARTY_NOTICES.md`.
 

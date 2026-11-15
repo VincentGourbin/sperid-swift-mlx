@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 — 2026-11-15
+
+- **mlx-swift `0.31.6..<0.33.0`** instead of `exact: "0.32.3"`, so that apps pinning 0.31.6 (Fluxforge Studio with flux-2-swift-mlx and yue2-mlx-swift) can resolve the package. Validated at 0.31.6 on the real weights: 62 tests (parity of every network, turbo, `IdolEngine` with cancellation), `idol parity decode|denoise` (fp32 anchors bit-exact, 50-step latent 3.1e-3), an end-to-end generation with USDZ (`usdchecker --arkit` passes). The upper end (0.32.3) is the v0.3.0 validation. No code change.
+
 ## 0.3.0 — 2026-11-15 — public release
 
 - **Whole pipeline in Swift/MLX**, checked against the Python SDK on real weights: BiRefNet (Swin-L, deformable convolution), DINOv3 ViT-H+/16, FLUX.2 VAE encoder, denoiser (50 steps CFG or idol-turbo 5 steps), octree + Gaussian decoders.

@@ -21,9 +21,11 @@ let package = Package(
         .executable(name: "idol-studio", targets: ["IdolStudio"]),
     ],
     dependencies: [
-        // Pinned exact: mlx-swift has broken API in patch releases before; bump deliberately.
-        // 0.32.3 = the most recent pin among the sibling ports (gemma-4-swift-mlx, 2026-10).
-        .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.32.3"),
+        // A closed range of validated versions, not `exact`: host apps (Fluxforge Studio, with flux-2 and
+        // yue2 at exact 0.31.6) must be able to resolve us next to their own pin. Both ends were checked on the
+        // real weights — 0.31.6 (v0.3.1: 62 tests, parity CLI, end-to-end) and 0.32.3 (v0.3.0). Widen the upper
+        // bound only after the same run: mlx-swift has broken API in minor releases before.
+        .package(url: "https://github.com/ml-explore/mlx-swift", "0.31.6"..<"0.33.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.2"),
         // 1.5.1: compiles for iOS (xctrace code behind #if os(macOS)).
         .package(url: "https://github.com/VincentGourbin/swift-mlx-profiler", from: "1.5.1"),

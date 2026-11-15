@@ -3,7 +3,7 @@
 Swift MLX port of the Speri Labs models, starting with **Idol** (`speridlabs/idol`, Apache-2.0): one image → BiRefNet cut-out → DINOv3 ViT-H+/16 + FLUX.2 VAE tokens → `LatentSeqMMFlowModel` rectified flow (8192 latent tokens + camera) → octree anchors → 32 Gaussians per anchor → standard 3DGS `.ply`. `idol-turbo` (phase LoRAs, 5 guidance-free steps) is Jalon 5; `iris-3b` / `iris-z` are planned only (`plan/15-famille-sperid.md`).
 **PLAN.md is the porting spec** (a table of contents into `plan/`) — read `plan/02.x` (architecture facts) and `plan/11-pieges.md` (pitfall checklist) before touching model code. Upstream reference: https://github.com/speridlabs/idol-sdk @ `8db7003` (`reference/idol-sdk`, created by `Scripts/link-references.sh`).
 ## Build & Run
-Build with `xcodebuild`, NOT `swift build` (SPM binaries cannot find MLX's `default.metallib`):
+mlx-swift is a validated range `0.31.6..<0.33.0` (host apps pin 0.31.6 exact); widen it only after the full real-weight run. Build with `xcodebuild`, NOT `swift build` (SPM binaries cannot find MLX's `default.metallib`):
   Scripts/check-build.sh   # Release, binary: .xcodebuild/Build/Products/Release/idol
 `swift build` is for compile checks only.
 ## Tests

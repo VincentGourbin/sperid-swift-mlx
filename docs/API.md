@@ -4,7 +4,7 @@ Two libraries: **`IdolCore`** (the pipeline, the engine, the exports — macOS 1
 (RealityKit 27: the splat as an entity, a SwiftUI view, an offscreen renderer).
 
 ```swift
-.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.0")
+.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.1")
 ```
 
 ## The shortest path
