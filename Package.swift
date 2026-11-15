@@ -13,6 +13,8 @@ let package = Package(
         .library(name: "SperidCore", targets: ["SperidCore"]),
         /// speridlabs/idol (and idol-turbo): one image → 3D Gaussian splat (.ply).
         .library(name: "IdolCore", targets: ["IdolCore"]),
+        /// SwiftUI / RealityKit 27: the splat as an entity, a view, an offscreen renderer.
+        .library(name: "IdolUI", targets: ["IdolUI"]),
         // MARK: - CLI Tools
         .executable(name: "idol", targets: ["IdolCLI"]),
         /// macOS 27 app: the speridlabs/idol Space locally (RealityKit Gaussian splats).
@@ -55,9 +57,13 @@ let package = Package(
                 .product(name: "MLXProfiler", package: "swift-mlx-profiler"),
             ]
         ),
+        .target(
+            name: "IdolUI",
+            dependencies: ["IdolCore"]
+        ),
         .executableTarget(
             name: "IdolStudio",
-            dependencies: ["IdolCore", "SperidCore"]
+            dependencies: ["IdolCore", "IdolUI", "SperidCore"]
         ),
         // MARK: - Tests
         .testTarget(

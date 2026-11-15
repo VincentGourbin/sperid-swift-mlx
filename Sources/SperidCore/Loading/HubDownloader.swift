@@ -23,7 +23,7 @@ public actor HubDownloader {
     private let configuration: URLSessionConfiguration
 
     /// `configuration` is a test seam (`protocolClasses` for a stub server).
-    public init(root: URL, token: String? = ProcessInfo.processInfo.environment["HF_TOKEN"],
+    public init(root: URL, token: String? = HubToken.resolve(),
                 configuration: URLSessionConfiguration = .default) {
         self.root = root
         self.token = token

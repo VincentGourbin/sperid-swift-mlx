@@ -42,6 +42,18 @@ public enum IdolWeights {
         repoID: comfyRepo, revision: comfyRevision, path: "vae/flux2-vae.safetensors",
         size: 336_211_292, sha256: "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3")
 
+    /// DINOv3 ViT-H+/16, official repository (gated: accept Meta's DINOv3 licence, then HF_TOKEN).
+    public static let dinov3 = HubFile(
+        repoID: "facebook/dinov3-vith16plus-pretrain-lvd1689m", revision: "c807c9eeea853df70aec4069e6f56b28ddc82acc",
+        path: "model.safetensors", size: 3_362_432_800,
+        sha256: "3e1d4d18b9bfa9f28fad8e9de6a783f1313532d3460efa4cd0b12521d81d1a4d", gated: true)
+    /// The FLUX.2 VAE (only its encoder is used), official repository (gated: accept the FLUX.2-dev terms).
+    public static let flux2VAE = HubFile(
+        repoID: "black-forest-labs/FLUX.2-dev", revision: "26afe3a78bb242c0a8bb181dcc8937bb16e5c66c",
+        path: "vae/diffusion_pytorch_model.safetensors", size: 336_213_556,
+        sha256: "d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5", gated: true)
+    public static let encoderFiles: [HubFile] = [dinov3, flux2VAE]
+
     /// The files `speridlabs/idol` itself publishes (≈ 3.1 GB, Apache-2.0).
     public static let idolFiles: [HubFile] = [config, denoiser, octreeDecoder, gaussianDecoder, birefnet]
 

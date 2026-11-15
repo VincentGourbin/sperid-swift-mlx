@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-11-15 — public release
+
+- **Whole pipeline in Swift/MLX**, checked against the Python SDK on real weights: BiRefNet (Swin-L, deformable convolution), DINOv3 ViT-H+/16, FLUX.2 VAE encoder, denoiser (50 steps CFG or idol-turbo 5 steps), octree + Gaussian decoders.
+- **API**: `IdolEngine` (async, cancellable, own MLX thread), `IdolModels` (status, resumable verified downloads, gated repos via `hf auth login`), `IdolSettings` (`.turbo`, `.quality`), `IdolResult` (PLY, USDZ, GLB).
+- **IdolUI**: `SplatEntity`, `SplatView` (RealityKit 27 Gaussian splats), `SplatRenderer` (offscreen).
+- **Exports**: USDZ (texture atlas, UsdPreviewSurface, passes `usdchecker --arkit`) and GLB (vertex colours) from any splat.
+- **Idol Studio**: the Space on the Mac (settings, examples, viewer, export).
+- Performance: fused rotary + RMSNorm (−4 %, bit-exact), bounded MLX cache (process peak 34 → 11 GB).
+
 ## 0.1.0 — 2026-11-15
 
 - Package `SperidSwift`: `SperidCore` (pinned `HubFile`s, models directory, safetensors header reader, `WeightContract`), `IdolCore`, CLI `idol`, mlx-swift 0.32.3 pinned exact.

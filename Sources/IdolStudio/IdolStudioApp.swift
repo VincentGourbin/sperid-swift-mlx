@@ -3,6 +3,7 @@
 
 import AppKit
 import IdolCore
+import IdolUI
 import RealityKit
 import SwiftUI
 
@@ -19,7 +20,7 @@ struct IdolStudioApp: App {
                 Task { @MainActor in
                     do {
                         let entity = try await Entity(contentsOf: URL(fileURLWithPath: usdz))
-                        try await OffscreenRender.render(entity: entity, to: URL(fileURLWithPath: args[i + 1]), lit: true)
+                        try await SplatRenderer.render(entity: entity, to: URL(fileURLWithPath: args[i + 1]), lit: true)
                         print("RENDER OK \(args[i + 1])"); exit(0)
                     } catch { print("RENDER FAILED \(error)"); exit(1) }
                 }
@@ -34,7 +35,7 @@ struct IdolStudioApp: App {
                     do {
                         let cameraURL = URL(fileURLWithPath: ply.replacingOccurrences(of: ".ply", with: "_camera.json"))
                         let pose = try? JSONDecoder().decode(CameraPose.self, from: Data(contentsOf: cameraURL))
-                        try await OffscreenRender.render(try PLYReader.read(URL(fileURLWithPath: ply)),
+                        try await SplatRenderer.render(try PLYReader.read(URL(fileURLWithPath: ply)),
                                                          to: URL(fileURLWithPath: args[i + 1]), inputCamera: pose)
                         print("RENDER OK \(args[i + 1])")
                         exit(0)

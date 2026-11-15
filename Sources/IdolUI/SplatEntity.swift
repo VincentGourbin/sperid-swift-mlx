@@ -1,4 +1,4 @@
-// SplatEntity.swift - a GaussianCloud as a RealityKit 27 Gaussian splat entity
+// SplatEntity.swift - a GaussianCloud as a RealityKit 27 Gaussian splat entity (IdolUI)
 // Copyright 2026 Vincent Gourbin
 
 import IdolCore
@@ -8,16 +8,17 @@ import simd
 
 /// One interleaved buffer per cloud, the same values a 3DGS `.ply` stores (y-up position, log scale,
 /// unit quaternion, logit opacity, SH degree 0), with RealityKit's exponential / sigmoid activations.
-@available(macOS 27.0, *)
+/// A `GaussianCloud` as a RealityKit 27 entity (`GaussianSplatComponent`), upright in RealityKit's y-up frame.
+@available(macOS 27.0, iOS 27.0, visionOS 27.0, *)
 @MainActor
-enum SplatEntity {
+public enum SplatEntity {
     /// RealityKit's quaternion layout is not documented in the interface: simd order (x, y, z, w) by
     /// default; `wFirst` switches to the PLY order (w, x, y, z) if a render shows twisted splats.
-    static var wFirst = false
+    public static var wFirst = false
 
     static let stride = MemoryLayout<Float>.size * (3 + 3 + 4 + 1 + 3)
 
-    static func make(_ cloud: GaussianCloud) throws -> Entity {
+    public static func make(_ cloud: GaussianCloud) throws -> Entity {
         let n = cloud.count
         let buffer = try LowLevelBuffer(descriptor: .init(capacity: n * stride))
         buffer.replaceUnsafeMutableBytes { raw in

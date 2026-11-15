@@ -7,7 +7,7 @@
   ⛔ GATE = Vincent teste lui-même avant la suite.
 - Copier depuis les dépôts frères (`reference/`), jamais de dépendance lourde ; mlx-swift épinglé `exact`.
 - Aucun chiffre sans profiler et protocole ; un levier < 5 % est retiré avec sa mesure.
-- Rien de publié (push public, upload HF) sans accord explicite. Dépôt GitHub **privé** pour l'instant.
+- Rien de publié (upload HF, release) sans accord explicite. Dépôt GitHub **public** depuis le 2026-11-15 (0.3.0).
 
 ## État (2026-11-15)
 - Jalon 1 validé (T-1.0 à T-1.7) ; GATE G-1 posée (revue visuelle de deux `.ply`).

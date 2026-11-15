@@ -1,4 +1,4 @@
-// DownloadCommand.swift - `idol download`: the pinned weights, resumable and verified
+// DownloadCommand.swift - `idol download`: every weight Idol reads (resumable, SHA-256 checked)
 // Copyright 2026 Vincent Gourbin
 
 import ArgumentParser
@@ -8,23 +8,22 @@ import SperidCore
 
 struct DownloadCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "download", abstract: "Download the pinned Idol weights (resume, SHA-256 check).")
+        commandName: "download",
+        abstract: "Download the pinned weights: speridlabs/idol, idol-turbo, and the gated DINOv3 and FLUX.2 VAE (hf auth login).")
 
     @Option(help: "Models directory (default: $SPERID_MODELS_DIR, else ~/Library/Caches/models).")
     var modelsDir: String?
 
-    @Flag(help: "Also download the idol-turbo phase LoRAs (117 MB).")
-    var turbo = false
+    @Flag(help: "Skip the idol-turbo LoRAs (117 MB).") var noTurbo = false
 
     func run() async throws {
-        let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
-            ?? ModelsDirectory.resolve()
-        let files = IdolWeights.idolFiles + (turbo ? [IdolWeights.turboLoRA] : [])
-        print("downloading \(files.count) files into \(root.path)")
-        let downloader = HubDownloader(root: root)
+        let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? ModelsDirectory.resolve()
+        let status = IdolModels.status(modelsDirectory: root, includeTurbo: !noTurbo)
+        guard !status.isComplete else { print("DOWNLOAD OK (everything present in \(root.path))"); return }
+        print(String(format: "downloading %d files (%.2f GB) into %@", status.missing.count, Double(status.missingBytes) / 1e9, root.path))
         let reporter = ProgressReporter()
-        try await downloader.download(files) { reporter.report($0) }
-        print("DOWNLOAD OK (\(files.count) files)")
+        try await IdolModels.download(modelsDirectory: root, includeTurbo: !noTurbo) { reporter.report($0) }
+        print("DOWNLOAD OK (\(status.missing.count) files)")
     }
 }
 

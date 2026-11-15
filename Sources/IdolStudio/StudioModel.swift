@@ -5,43 +5,8 @@ import AppKit
 import Foundation
 import IdolCore
 import Observation
+import IdolUI
 import SperidCore
-
-/// The pipeline is not Sendable; it only ever runs on `worker`, one job at a time.
-final class PipelineBox: @unchecked Sendable {
-    var pipeline: IdolPipeline?
-}
-
-/// One long-lived thread for every MLX call of the app. A serial DispatchQueue keeps the order but not
-/// the thread, and mlx-swift must build and evaluate a graph on the same thread (MLX-004): loading on one
-/// pool thread then generating on another crashed in the Metal command encoder (2026-11-15).
-final class MLXWorker: @unchecked Sendable {
-    private let condition = NSCondition()
-    private var jobs: [() -> Void] = []
-    private var thread: Thread!
-
-    init(name: String) {
-        thread = Thread { [unowned self] in self.loop() }
-        thread.name = name
-        thread.qualityOfService = .userInitiated
-        thread.stackSize = 16 << 20
-        thread.start()
-    }
-
-    func async(_ job: @escaping () -> Void) {
-        condition.lock(); jobs.append(job); condition.signal(); condition.unlock()
-    }
-
-    private func loop() {
-        while true {
-            condition.lock()
-            while jobs.isEmpty { condition.wait() }
-            let job = jobs.removeFirst()
-            condition.unlock()
-            autoreleasepool { job() }
-        }
-    }
-}
 
 @Observable
 @MainActor
@@ -75,24 +40,28 @@ final class StudioModel {
     var timings = ""
 
     let root = ModelsDirectory.resolve()
-    private let box = PipelineBox()
-    private let worker = MLXWorker(name: "idol.mlx")
-    private var cancelFlag = false
+    /// The public API (`IdolEngine`): its own MLX thread, async generation, cancellation by task.
+    private var engine: IdolEngine?
+    private var task: Task<Void, Never>?
 
     func start() {
         // `idol-studio path/to/file.ply` shows that file right away (also how the viewer is checked from a script)
         if let ply = CommandLine.arguments.dropFirst().first(where: { $0.hasSuffix(".ply") }) {
             openPLY(URL(fileURLWithPath: ply))
         }
-        let box = box, root = root
-        worker.async {
+        Task {
             do {
                 let start = Date()
-                box.pipeline = try IdolPipeline(modelsDirectory: root)
-                let s = Date().timeIntervalSince(start)
-                Task { @MainActor in self.ready = true; self.status = String(format: "Ready (models loaded in %.0f s)", s) }
+                let missing = IdolModels.status(modelsDirectory: root)
+                if !missing.isComplete {
+                    status = String(format: "Downloading %.1f GB of weights…", Double(missing.missingBytes) / 1e9)
+                    try await IdolModels.download(modelsDirectory: root)
+                }
+                engine = try await IdolEngine.load(modelsDirectory: root)
+                ready = true
+                status = String(format: "Ready (models loaded in %.0f s)", Date().timeIntervalSince(start))
             } catch {
-                Task { @MainActor in self.status = "Could not load the models: \(error.localizedDescription)" }
+                status = "Could not load the models: \(error.localizedDescription)"
             }
         }
         Task { await loadExamples() }
@@ -123,7 +92,7 @@ final class StudioModel {
         }
     }
 
-    func cancel() { cancelFlag = true }
+    func cancel() { task?.cancel() }
 
     /// Extracts the mesh of the current splat and writes it as .glb or .usdz (chosen by the extension).
     func exportMesh(to url: URL) {
@@ -162,44 +131,31 @@ final class StudioModel {
     }
 
     func generate() {
-        guard let url = inputURL, ready, !busy else { return }
-        if randomSeed { seed = UInt64.random(in: 0..<(1 << 31)) }
-        let request = IdolRequest(mode: mode, seed: seed, steps: turbo ? 5 : steps, cfgStrength: turbo ? 0 : cfg,
-                                  rescaleT: rescaleT, numGaussians: numGaussians)
-        let useTurbo = turbo
-        busy = true; cancelFlag = false; status = "Generating…"
-        let box = box, root = root
-        worker.async { [weak self] in
+        guard let url = inputURL, let engine, !busy else { return }
+        let settings = IdolSettings(mode: mode, seed: randomSeed ? nil : seed, turbo: turbo, steps: steps,
+                                    guidance: cfg, timeShift: rescaleT, gaussians: numGaussians)
+        busy = true
+        status = "Generating…"
+        let root = root
+        task = Task {
             do {
-                let image = try RGBAImage(contentsOf: url)
-                var noise = SeededNoise(seed: request.seed)
-                let output = try box.pipeline!.generate(
-                    image: image, request: request, noise: &noise, useTurbo: useTurbo, memory: .fromEnvironment,
-                    isCancelled: { [weak self] in MainActor.assumeIsolatedOrFalse { self?.cancelFlag ?? false } },
-                    progress: { p in Task { @MainActor in self?.stage = p.stage; self?.fraction = p.fraction } })
-                let name = url.deletingPathExtension().lastPathComponent + "-seed\(request.seed)"
-                let folder = root.appendingPathComponent("idol-studio-outputs")
-                try output.write(to: folder, name: name)
-                let t = output.timings
-                let summary = String(format: "%d Gaussians · %d steps · encode %.1f s · denoise %.0f s · decode %.1f s",
-                                     output.cloud.count, request.steps, t["encode"] ?? 0, t["denoise"] ?? 0, t["decode"] ?? 0)
-                Task { @MainActor in
-                    guard let self else { return }
-                    self.cloud = output.cloud; self.cloudVersion += 1; self.lastOutputFolder = folder
-                    self.timings = summary; self.status = "Done"; self.busy = false; self.stage = nil
+                let result = try await engine.generate(.url(url), settings: settings) { p in
+                    Task { @MainActor in self.stage = p.stage; self.fraction = p.fraction }
                 }
+                seed = result.seed
+                let folder = root.appendingPathComponent("idol-studio-outputs")
+                try result.write(to: folder, name: url.deletingPathExtension().lastPathComponent + "-seed\(result.seed)")
+                let t = result.timings
+                timings = String(format: "%d Gaussians · %@ · encode %.1f s · denoise %.0f s · decode %.1f s",
+                                 result.cloud.count, settings.turbo ? "turbo 5 steps" : "\(settings.steps) steps",
+                                 t["encode"] ?? 0, t["denoise"] ?? 0, t["decode"] ?? 0)
+                cloud = result.cloud; cloudVersion += 1; lastOutputFolder = folder; status = "Done"
             } catch is CancellationError {
-                Task { @MainActor in self?.status = "Cancelled"; self?.busy = false; self?.stage = nil }
+                status = "Cancelled"
             } catch {
-                Task { @MainActor in self?.status = "Failed: \(error.localizedDescription)"; self?.busy = false; self?.stage = nil }
+                status = "Failed: \(error.localizedDescription)"
             }
+            busy = false; stage = nil
         }
-    }
-}
-
-extension MainActor {
-    /// Reads main-actor state from the worker without blocking it: the flag is only advisory.
-    nonisolated static func assumeIsolatedOrFalse(_ body: @MainActor () -> Bool) -> Bool {
-        Thread.isMainThread ? MainActor.assumeIsolated(body) : DispatchQueue.main.sync { MainActor.assumeIsolated(body) }
     }
 }

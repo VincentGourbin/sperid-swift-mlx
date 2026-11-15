@@ -3,6 +3,7 @@
 
 import AppKit
 import IdolCore
+import IdolUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -18,7 +19,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Group {
                         if #available(macOS 27.0, *) {
-                            SplatView(cloud: model.cloud, version: model.cloudVersion)
+                            SplatView(cloud: model.cloud, id: model.cloudVersion)
                         } else {
                             Text("The splat viewer needs macOS 27 (RealityKit Gaussian splats)").foregroundStyle(.secondary)
                         }

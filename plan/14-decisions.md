@@ -9,8 +9,8 @@
 - D-4 **Bruit injectable partout** (`NoiseSource`) : condition de toute parité.
 - D-5 **Ordre des Jalons par vérifiabilité** : décodeurs → débruiteur → encodeurs → prétraitement → turbo → profils.
 - D-6 mlx-swift **0.32.3 exact** (dernière montée d'un dépôt frère, gemma-4-swift-mlx) ; profiler ≥ 1.5.1.
-- D-7 Dépôt GitHub **privé** jusqu'à décision de Vincent ; règles d'un dépôt public appliquées dès
-  maintenant (aucun chemin absolu, aucun poids).
+- D-7 Dépôt GitHub **public depuis le 2026-11-15** (demande de Vincent, version 0.3.0), audit préalable de tout
+  l'historique (aucun chemin absolu, jeton, poids ni image personnelle) ; `THIRD_PARTY_NOTICES.md`.
 
 ### Questions (tasks/ASK.md)
 - ~~Q-1~~ **Tranchée 2026-11-15 : dépôt officiel, accès demandé.** Source des poids DINOv3 : demander l'accès à `facebook/dinov3-vith16plus-pretrain-lvd1689m`

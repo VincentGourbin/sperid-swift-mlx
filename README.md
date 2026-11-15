@@ -1,65 +1,103 @@
 # sperid-swift-mlx
 
-Swift / MLX ports of the [speridlabs](https://huggingface.co/speridlabs) models for Apple Silicon, starting with **Idol**: one picture of an object in, up to a million 3D Gaussians out, written as a standard 3DGS `.ply`, with no Python at inference time.
+Swift / MLX port of **[Idol](https://huggingface.co/speridlabs/idol)** by [Speri Labs](https://huggingface.co/speridlabs) for Apple Silicon: **one picture of an object in, a 3D Gaussian splat out** — entirely on the Mac, no Python at run time. Exports the standard 3DGS `.ply`, a textured **USDZ** (Quick Look, AR) and a **GLB** (Blender, web).
 
-> **Status — 0.2 (2026-11-15): one image → 3D splat, entirely in Swift.** `idol generate --turbo` turns a picture into a 262 144-Gaussian `.ply` in about 25 s on an M3 Max (5 steps, idol-turbo), or ~10 min with the 50-step base model. Every stage is checked against the Python SDK: fp32 anchors bit-exact, DINOv3 1.8e-6, VAE 1.6e-5, 50-step latent 5.9e-3, turbo latent 2.5e-3. **Idol Studio** (`idol-studio`) is the Space on your Mac: same settings and examples, RealityKit 27 splat viewer. Background removal is the reference's BiRefNet (alpha within 1e-6 of PyTorch in fp32); Apple Vision is an option.
+> Independent community port, not affiliated with Speri Labs. The weights are theirs (and Meta's and Black Forest Labs' for the two encoders); they are downloaded under your own Hugging Face account and their licences apply — see [Licences](#licences).
 
-| Documentation | |
+| Turbo, 5 steps, ≈ 20 s on an M3 Max | |
 |---|---|
-| [Porting plan](PLAN.md) | architecture facts, milestones, pitfalls, budgets (French, one file per section) |
-| [Command line](docs/CLI.md) | every `idol` command |
-| [Swift API](docs/API.md) | `IdolCore` / `SperidCore` types, the pipeline to come |
-| [Weights and licences](docs/Weights.md) | pinned files, SHA-256, the gated encoders |
-| [Reference configurations](docs/References.md) | the planned `<bits>bit-fast\|lean` matrix (to be measured) |
-| [Benchmarks](docs/Benchmarks.md) | protocol and the expected costs, until measured |
-| [Engineering knowledge base](docs/knowledge/index.md) | log, decisions, pitfalls (OKF, French) |
+| A photo of a living room → the foosball table only (BiRefNet cut-out), then 262 144 Gaussians, then a USDZ mesh | `idol generate --turbo --mode real --image photo.jpg --usdz` |
 
-## The models
+## What you get
 
-| Model | Task | Port |
-|---|---|---|
-| [`speridlabs/idol`](https://huggingface.co/speridlabs/idol) | image → 3D Gaussian splat (1.8 B parameters across 6 networks) | **in progress** — Jalons 1-4 |
-| [`speridlabs/idol-turbo`](https://huggingface.co/speridlabs/idol-turbo) | Idol in 5 guidance-free steps (phase LoRAs) | Jalon 5 |
-| [`speridlabs/iris-3b`](https://huggingface.co/speridlabs/iris-3b), [`iris-z`](https://huggingface.co/speridlabs/iris-z) | pixel-space text-to-image; joint image + depth | planned ([plan/15](plan/15-famille-sperid.md)) |
+- **`IdolCore`** — the whole pipeline in Swift/MLX: BiRefNet cut-out, DINOv3 ViT-H+/16 and FLUX.2 VAE encoders, the rectified-flow denoiser (50-step base model or **idol-turbo**, 5 steps), octree + Gaussian decoders, PLY / USDZ / GLB writers, and a small async API (`IdolEngine`).
+- **`IdolUI`** — the splat as a RealityKit 27 entity (`GaussianSplatComponent`), a SwiftUI `SplatView` with orbit controls, an offscreen renderer for thumbnails.
+- **`idol`** — the command line; **`idol-studio`** — a macOS app that mirrors the [Idol Space](https://huggingface.co/spaces/speridlabs/idol): same settings, same 94 examples, live 3D viewer, export menu.
 
-## Idol, stage by stage
+Every stage is checked against the Python SDK on real weights and real images:
+
+| Stage | Swift vs PyTorch |
+|---|---|
+| BiRefNet alpha (fp32) | 1.0e-6 (uint8 alpha within 1 level) |
+| DINOv3 tokens (fp32) | 1.8e-6 |
+| FLUX.2 VAE tokens (fp32) | 1.6e-5 |
+| Denoiser, one forward (fp32) | 7.7e-5 |
+| Final latent, 50 steps CFG 3 (fp16) | 5.9e-3 — same camera |
+| Final latent, turbo 5 steps (fp16) | 2.5e-3 |
+| Octree anchors (fp32) | bit-identical (8 192 anchors) |
+| Gaussian decoder (fp32) | 5.0e-6 |
+
+Measured on an M3 Max 96 GB (in session, see [benchmarks](docs/knowledge/benchmarks/m3max-profile-2026-11-15.md)): turbo ≈ 22 s per object, base model ≈ 8 min, process peak ≈ 11 GB with the default memory policy.
+
+## Use it in an app
+
+```swift
+// Package.swift
+.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.0"),
+// target dependencies: .product(name: "IdolCore", package: "sperid-swift-mlx"),
+//                      .product(name: "IdolUI", package: "sperid-swift-mlx")   // RealityKit view (macOS / iOS 27)
+```
+
+```swift
+import IdolCore
+
+// 1. weights (≈ 7.5 GB, once). DINOv3 and FLUX.2-dev are gated: accept their terms on huggingface.co,
+//    then `hf auth login` (or HF_TOKEN) — the token is picked up automatically.
+if !IdolModels.status().isComplete { try await IdolModels.download { print($0.file, $0.writtenBytes) } }
+
+// 2. load once (≈ 4 GB in memory), generate many; cancelling the Task stops the generation
+let engine = try await IdolEngine.load()
+let result = try await engine.generate(.url(photoURL), settings: IdolSettings(mode: .real)) { progress in
+    print(progress.stage, progress.fraction)
+}
+
+// 3. outputs
+try result.writePLY(to: folder.appending(path: "object.ply"))     // 3DGS viewers, Blender 5.3
+try result.writeUSDZ(to: folder.appending(path: "object.usdz"))   // Quick Look / AR (passes usdchecker --arkit)
+try result.writeGLB(to: folder.appending(path: "object.glb"))     // Blender, three.js, Unity
+```
+
+```swift
+import IdolUI
+SplatView(cloud: result.cloud, id: generation)        // SwiftUI, RealityKit 27 Gaussian splats, orbit controls
+```
+
+`IdolSettings.turbo` (default: 5 guidance-free steps) and `IdolSettings.quality` (50 steps, guidance 3) are the two presets; every Space setting is there (`mode`, `seed`, `steps`, `guidance`, `timeShift`, `gaussians`). Full reference: [docs/API.md](docs/API.md).
+
+## Command line and app
+
+```bash
+Scripts/check-build.sh                       # Release build (xcodebuild: MLX needs its metallib)
+B=.xcodebuild/Build/Products/Release
+$B/idol download                             # weights; gated encoders need `hf auth login`
+$B/idol generate --turbo --image photo.jpg --mode real --out outputs --usdz --glb
+$B/idol export --ply outputs/photo.ply --usdz photo.usdz      # mesh from any 3DGS .ply
+Scripts/check-build.sh idol-studio && $B/idol-studio          # the app
+```
+
+Requirements: Apple Silicon, macOS 15+ for the library and the CLI (macOS 27 for the RealityKit splat viewer), Xcode 27. Memory: ≈ 11 GB process peak in turbo with the default policy (measured on 96 GB; a 16 GB Mac is untested).
+
+## How it works
 
 ```
 image ─▶ BiRefNet cut-out, square crop, 1024² on black
-      ─▶ DINOv3 ViT-H+/16 tokens [4101×1280]  +  FLUX.2 VAE tokens [4101×128]
-      ─▶ rectified-flow DiT over 8192 latent tokens + 1 camera token (50 steps, CFG 3; turbo: 5 steps)
-      ─▶ octree descent to 256³ (CPU + 8 forwards) ─▶ num_gaussians/32 anchors
-      ─▶ 32 Gaussians per anchor ─▶ .ply (y-up) + camera.json
+      ─▶ DINOv3 ViT-H+/16 tokens [4101 × 1280]  +  FLUX.2 VAE tokens [4101 × 128]
+      ─▶ rectified-flow DiT over 8 192 latent tokens + 1 camera token (50 steps CFG 3, or turbo: 5 steps)
+      ─▶ octree descent to 256³ (CPU + 8 forwards) ─▶ num_gaussians / 32 anchors
+      ─▶ 32 Gaussians per anchor ─▶ .ply  ─▶ (optional) density grid + surface nets ─▶ .usdz / .glb
 ```
 
-Expected costs on an M3 Max are in [plan/03-budget.md](plan/03-budget.md): 150-300 s for the 50-step base model and 8-16 s in turbo, **calculated from the dimensions with an assumed 7-15 TFLOPS, not measured**.
+The port's engineering record — plan, decisions, pitfalls (Swift's `Float.pi` rounded toward zero, the y-down 3DGS PLY, MLX graphs crossing threads…) — lives in [`plan/`](PLAN.md), [`tasks/`](tasks/INDEX.md) and [`docs/knowledge/`](docs/knowledge/index.md) (in French).
 
-## Getting started
-
-```bash
-# build (xcodebuild, never `swift build` for a binary: MLX's metallib would not be found)
-Scripts/check-build.sh                  # → .xcodebuild/Build/Products/Release/idol
-Scripts/check-tests.sh                  # weight-free tests
-.xcodebuild/Build/Products/Release/idol info              # pinned weights, local copies vs contracts
-.xcodebuild/Build/Products/Release/idol schedule --steps 5  # the turbo time grid
-Scripts/link-references.sh              # reference/: idol-sdk, transformers (DINOv3), sibling ports
-.xcodebuild/Build/Products/Release/idol download --turbo   # 3.2 GB; DINOv3 and FLUX.2-dev are gated (accept their terms, HF_TOKEN)
-.xcodebuild/Build/Products/Release/idol generate --turbo --image photo.webp --out outputs
-Scripts/check-build.sh idol-studio && .xcodebuild/Build/Products/Release/idol-studio   # the app
-```
-
-## Repository layout
-
-```
-Sources/SperidCore     Hub files, models directory, safetensors headers, weight contracts (shared)
-Sources/IdolCore       Configuration, Sampling, Decoding, Output — Models/, Preprocess/, Pipeline/ to come
-Sources/IdolCLI        `idol`
-Tests/SperidTests      swift-testing suites (weight-free; checkpoint-backed ones gated on SPERID_MODELS_DIR)
-plan/  tasks/          the porting plan and its cards (AGENTS.md is the executor's manual)
-Scripts/               build, tests, parity, references; Scripts/reference = Python dumps
-docs/                  user documentation; docs/knowledge = engineering knowledge base
-```
+| Documentation | |
+|---|---|
+| [Swift API](docs/API.md) | `IdolEngine`, `IdolModels`, `IdolSettings`, `IdolResult`, `IdolUI` |
+| [Command line](docs/CLI.md) | every `idol` command |
+| [Weights and licences](docs/Weights.md) | pinned files, SHA-256, the gated encoders |
+| [Benchmarks](docs/Benchmarks.md) | protocol and measurements |
+| [Third-party notices](THIRD_PARTY_NOTICES.md) | code the port follows, weight licences |
 
 ## Licences
 
-Code: MIT ([LICENSE](LICENSE)). Weights are not in this repository: Idol and Idol Turbo are Apache-2.0; DINOv3 ships under Meta's DINOv3 licence (gated); the FLUX.2 VAE comes from `black-forest-labs/FLUX.2-dev` (gated, see its card). Iris-Z is under the FLUX non-commercial licence. Details in [docs/Weights.md](docs/Weights.md).
+- **Code**: MIT ([LICENSE](LICENSE)). It follows Apache-2.0 and MIT reference implementations (idol-sdk, transformers, diffusers, BiRefNet, Swin): [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Weights**, never in this repository: Idol and Idol Turbo — Apache-2.0 (Speri Labs); DINOv3 ViT-H+/16 — Meta's DINOv3 licence (gated); FLUX.2 VAE — taken from `black-forest-labs/FLUX.2-dev`, FLUX Non-Commercial License (gated). Read those terms before any commercial use.

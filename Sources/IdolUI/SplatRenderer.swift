@@ -1,32 +1,35 @@
-// OffscreenRender.swift - render a splat to PNG without a window (RealityRenderer → MTLTexture)
+// SplatRenderer.swift - render a splat (or any entity) to PNG without a window (RealityRenderer → MTLTexture)
 // Copyright 2026 Vincent Gourbin
 
-import AppKit
+import CoreGraphics
+import Foundation
+import ImageIO
 import IdolCore
+import UniformTypeIdentifiers
 import Metal
 import RealityKit
 import simd
 
 /// `idol-studio file.ply --render out.png`: `views` yaw angles around the object, side by side, for
 /// checking the viewer from a script (no screen needed) and for thumbnails.
-@available(macOS 27.0, *)
+@available(macOS 27.0, iOS 27.0, *)
 @MainActor
-enum OffscreenRender {
+public enum SplatRenderer {
     /// Eye direction (RealityKit, y-up) of the camera the model predicted for its input image: in the
     /// object's z-up frame d = (sin yaw·cos pitch, cos yaw·cos pitch, sin pitch); y-up: (dx, dz, −dy).
-    static func inputDirection(_ pose: CameraPose) -> SIMD3<Float> {
+    public static func inputDirection(_ pose: CameraPose) -> SIMD3<Float> {
         let (y, p) = (Float(pose.yaw), Float(pose.pitch))
         let d = SIMD3<Float>(sin(y) * cos(p), cos(y) * cos(p), sin(p))
         return SIMD3<Float>(d.x, d.z, -d.y)
     }
 
-    static func render(_ cloud: GaussianCloud, to url: URL, views: Int = 4, size: Int = 512,
+    public static func render(_ cloud: GaussianCloud, to url: URL, views: Int = 4, size: Int = 512,
                        inputCamera: CameraPose? = nil) async throws {
         try await render(entity: try SplatEntity.make(cloud), to: url, views: views, size: size, inputCamera: inputCamera)
     }
 
     /// Any entity (a splat, or a .usdz loaded the way AR Quick Look loads it), with a light for meshes.
-    static func render(entity: Entity, to url: URL, views: Int = 4, size: Int = 512, inputCamera: CameraPose? = nil,
+    public static func render(entity: Entity, to url: URL, views: Int = 4, size: Int = 512, inputCamera: CameraPose? = nil,
                        lit: Bool = false) async throws {
         let device = MTLCreateSystemDefaultDevice()!
         let renderer = try RealityRenderer()
@@ -48,7 +51,7 @@ enum OffscreenRender {
         renderer.entities.append(camera)
         renderer.activeCamera = camera
 
-        // pixel-exact strip (an NSImage would double it on a Retina screen)
+        // pixel-exact strip
         let stripContext = CGContext(data: nil, width: size * views, height: size, bitsPerComponent: 8, bytesPerRow: 0,
                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
@@ -83,7 +86,8 @@ enum OffscreenRender {
         for (i, tile) in tiles.enumerated() {
             stripContext.draw(tile, in: CGRect(x: i * size, y: 0, width: size, height: size))
         }
-        let rep = NSBitmapImageRep(cgImage: stripContext.makeImage()!)
-        try rep.representation(using: .png, properties: [:])!.write(to: url)
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else { return }
+        CGImageDestinationAddImage(dest, stripContext.makeImage()!, nil)
+        CGImageDestinationFinalize(dest)
     }
 }

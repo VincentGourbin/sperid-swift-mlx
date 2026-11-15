@@ -5,12 +5,18 @@ import IdolCore
 import RealityKit
 import SwiftUI
 
-@available(macOS 27.0, *)
-struct SplatView: View {
+/// A SwiftUI view showing a splat with orbit controls. Change `id` to swap the object.
+@available(macOS 27.0, iOS 27.0, visionOS 27.0, *)
+public struct SplatView: View {
     let cloud: GaussianCloud?
     let version: Int
 
-    var body: some View {
+    public init(cloud: GaussianCloud?, id version: Int) {
+        self.cloud = cloud
+        self.version = version
+    }
+
+    public var body: some View {
         RealityView { content in
             let anchor = Entity()
             anchor.name = "splat-root"
@@ -24,7 +30,9 @@ struct SplatView: View {
             }
             root.components.set(VersionComponent(version: version))
         }
+        #if os(macOS) || os(iOS)
         .realityViewCameraControls(.orbit)
+        #endif
         .background(Color(white: 0.05))
     }
 }
