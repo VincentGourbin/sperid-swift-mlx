@@ -45,6 +45,9 @@ enum SplatEntity {
         splat.opacityActivation = .sigmoid
         let entity = Entity()
         entity.components.set(GaussianSplatComponent(splat))
+        // the 3DGS PLY convention (`save_ply`: (x, −z, y)) is y-DOWN (COLMAP); RealityKit is y-up:
+        // a half turn about x puts the object upright, (x, −z, y) → (x, z, −y)
+        entity.orientation = simd_quatf(angle: .pi, axis: [1, 0, 0])
         return entity
     }
 }

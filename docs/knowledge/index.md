@@ -18,6 +18,7 @@ Mesures reproductibles (état des horloges GPU, écart ±2 %). Rien pour l'insta
 
 ## Pitfalls
 Numérotés comme `plan/11-pieges.md`.
+- [PLY 3DGS y-bas](pitfalls/ply-y-down-convention.md) — `save_ply` écrit (x, −z, y) : le haut de l'objet sur −y ; RealityKit (y-haut) le tourne d'un demi-tour (n° 21).
 - [`Float.pi` arrondi vers zéro](pitfalls/swift-float-pi-rounded-toward-zero.md) — un ulp sous le π de torch, 2,4e-4 sur sin/cos à 3000 rad ; `Float(Double.pi)` ; l'`exp` de torch à ~1 ulp impose une tolérance trig de 3e-4 (n° 20).
 
 ## Investigations

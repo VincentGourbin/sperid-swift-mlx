@@ -6,7 +6,9 @@ import Foundation
 /// Binary little-endian PLY with the 17 float properties every 3DGS viewer reads. Stored values
 /// are the *inverse* activations (logit opacity, log scale), with the reference's clamps so a
 /// saturated opacity or a zero scale is never written as ±inf; the z-up object is rotated
-/// +90° about x into the y-up convention: (x, y, z) → (x, −z, y), q → q_x(90°) ⊗ q.
+/// +90° about x: (x, y, z) → (x, −z, y), q → q_x(90°) ⊗ q. The SDK calls this "y-up", but the object's
+/// up (+z) lands on **−y**: the file follows the COLMAP / original 3DGS y-down convention (pitfall 21);
+/// a y-up renderer (RealityKit) must turn it half a turn about x.
 public enum PLYWriter {
     public static let propertyNames = [
         "x", "y", "z", "nx", "ny", "nz", "f_dc_0", "f_dc_1", "f_dc_2", "opacity",

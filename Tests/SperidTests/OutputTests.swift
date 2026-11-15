@@ -50,3 +50,21 @@ struct OutputTests {
         #expect(ortho.radius == 1000 && abs(ortho.fov - 0.04583662116584617) < 1e-6)
     }
 }
+
+@Suite("PLYRoundTrip")
+struct PLYRoundTripTests {
+    @Test func readerInvertsWriter() throws {
+        let cloud = GaussianCloud.activate(
+            rawXYZ: [0.1, 0.7, 0.3, 0.9, 0.2, 0.5], featuresDC: [0.1, 0.2, 0.3, -0.4, 0.5, 0.6],
+            rawScaling: [0.1, -0.2, 0.3, 1, 2, -1], rawRotation: [0.1, 0.2, -0.3, 0.4, -0.5, 0.1, 0.2, 0.3],
+            rawOpacity: [0.5, -2], scalingBias: 0.004, opacityBias: 0.1, minimumKernelSize: 0.0009)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID()).ply")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try PLYWriter.write(cloud, to: url)
+        let back = try PLYReader.read(url)
+        for (a, b) in [(cloud.xyz, back.xyz), (cloud.featuresDC, back.featuresDC), (cloud.scaling, back.scaling),
+                       (cloud.rotation, back.rotation), (cloud.opacity, back.opacity)] {
+            #expect(zip(a, b).allSatisfy { abs($0 - $1) < 1e-5 * max(1, abs($0)) })
+        }
+    }
+}

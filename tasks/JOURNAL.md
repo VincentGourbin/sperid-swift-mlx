@@ -94,3 +94,17 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-parity.sh denoise` → `PARITY OK denoise (final latent relL2 0.0058743255)` ; `.local-runs/parity/avocado_swift.ply` (262 144 Gaussiennes)
 - Limites connues : le conditionnement vient encore de Python (DINOv3 + VAE : Jalon 3).
 - Pas d'agent : 0 · appels d'outils : 2
+
+## T-3.1 → T-3.5 — Encodeurs d'image en Swift — 2026-11-15 — validées
+- Fait : `Models/Encoders/{DINOv3,FluxVAEEncoder,FluxVAETokens,EncoderWeights}.swift` (DINOv3 ViT-H+/16 : patch conv, CLS + 4 registres, RoPE 2D `rotate_half` sur les patches, layerscale, gated SiLU, layer_norm finale d'Idol ; encodeur VAE FLUX.2 aux clés diffusers, GroupNorm à statistiques fp32, posterior échantillonné avec ε rejoué, patchification 2×2, BN eps 1e-4, 5 lignes de zéros) ; poids lus dans le dossier des modèles puis le cache HF (dépôts officiels gated) ; `Scripts/reference/encoder_fixtures.py` ; `Tests/SperidTests/RealEncoderParityTests.swift`.
+- Bug réel rencontré : fixture — `vae32_mean` et `vae32_feature2` n'avaient pas la même entrée (le SDK arrondit et calcule `·2 − 1` en bf16) ; Swift : `moments(sdkInput:)`. GroupNorm MLX en bf16 calcule ses statistiques en bf16 (torch : fp32) → `GroupNorm32`.
+- Validation : `Scripts/check-tests.sh RealEncoderParityTests` → `TESTS OK (2 tests, 0 skippés)` avec `REALENC dinov3 float32 vs fp32: relL2 1.785392e-06 cos 1.0`, `REALENC dinov3 bfloat16 vs fp32: relL2 0.011745531 cos 0.99993104 | python bf16 relL2 0.011218815`, `REALENC vae float32 vs fp32: mean 2.070674e-05 logvar 2.0443846e-05 feature2 1.608539e-05`
+- Limites connues : VAE en fp32 par défaut (bf16 Swift plus loin du fp32 que le bf16 du SDK) ; DINOv3 en bf16 comme la référence.
+- Pas d'agent : 0 · appels d'outils : ~15
+
+## T-4.1, T-4.2, T-4.6 — Prétraitement, détourage Vision, pipeline public ⛔ G-4 — 2026-11-15 — validées (BiRefNet T-4.3-4.5 reportées)
+- Fait : `Preprocess/{RGBAImage,BackgroundRemover,ImagePreprocessor}.swift` (côté court, alpha réel ou `VisionBackgroundRemover`, érosion 3×3, carré × marge, Lanczos vImage prémultiplié, composite noir), `Pipeline/IdolPipeline.swift` (`generate(image:request:noise:…)`, progression, annulation, `IdolOutput.write` = mêmes trois fichiers que le SDK), `idol generate` ; `Output/PLYReader.swift` (+ test aller-retour) ; app `Sources/IdolStudio` (réglages et exemples du Space, viewer RealityKit 27, ouverture de `.ply`, rendu hors écran `--render`).
+- Bug réel rencontré : convention y-bas du PLY (piège 21) ; `pgrep -f` qui se trouve lui-même dans une boucle d'attente (deux fois).
+- Validation : `idol generate --image …/avocado.webp` → `GENERATE OK avocado: 262144 Gaussians — preprocess 0.1 s, encode 3.3 s, denoise 596.0 s, decode 3.1 s` ; image prétraitée vs SDK : écart moyen 0,35/255, IoU 0,984 ; `TESTS OK (1 tests)` PLYRoundTrip ; rendu `RENDER OK` (vue de la caméra prédite = image d'entrée)
+- Limites connues : détourage Vision ≠ BiRefNet (images sans alpha) ; IoU 0,984 < 0,99 (bords Lanczos) ; débruitage 10 min (turbo : Jalon 5).
+- Pas d'agent : 0 · appels d'outils : ~25

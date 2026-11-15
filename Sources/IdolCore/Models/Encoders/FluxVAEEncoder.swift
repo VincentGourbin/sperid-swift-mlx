@@ -7,18 +7,25 @@ import Foundation
 import MLX
 import MLXNN
 
+/// GroupNorm with fp32 statistics (torch accumulates bf16 group norms in fp32), output in the input dtype.
+final class GroupNorm32: GroupNorm {
+    override func callAsFunction(_ x: MLXArray) -> MLXArray {
+        super.callAsFunction(x.asType(.float32)).asType(x.dtype)
+    }
+}
+
 /// diffusers `ResnetBlock2D` without time embedding: norm → SiLU → conv → norm → SiLU → conv, + shortcut.
 final class VAEResnetBlock: Module {
-    @ModuleInfo(key: "norm1") var norm1: GroupNorm
+    @ModuleInfo(key: "norm1") var norm1: GroupNorm32
     @ModuleInfo(key: "conv1") var conv1: Conv2d
-    @ModuleInfo(key: "norm2") var norm2: GroupNorm
+    @ModuleInfo(key: "norm2") var norm2: GroupNorm32
     @ModuleInfo(key: "conv2") var conv2: Conv2d
     @ModuleInfo(key: "conv_shortcut") var shortcut: Conv2d?
 
     init(_ cin: Int, _ cout: Int) {
-        _norm1.wrappedValue = GroupNorm(groupCount: 32, dimensions: cin, eps: 1e-6, pytorchCompatible: true)
+        _norm1.wrappedValue = GroupNorm32(groupCount: 32, dimensions: cin, eps: 1e-6, pytorchCompatible: true)
         _conv1.wrappedValue = Conv2d(inputChannels: cin, outputChannels: cout, kernelSize: 3, padding: 1)
-        _norm2.wrappedValue = GroupNorm(groupCount: 32, dimensions: cout, eps: 1e-6, pytorchCompatible: true)
+        _norm2.wrappedValue = GroupNorm32(groupCount: 32, dimensions: cout, eps: 1e-6, pytorchCompatible: true)
         _conv2.wrappedValue = Conv2d(inputChannels: cout, outputChannels: cout, kernelSize: 3, padding: 1)
         _shortcut.wrappedValue = cin == cout ? nil : Conv2d(inputChannels: cin, outputChannels: cout, kernelSize: 1)
         super.init()
@@ -47,14 +54,14 @@ final class VAEDownsample: Module {
 
 /// The mid-block attention: one head of width C over the H·W tokens, residual.
 final class VAEAttention: Module {
-    @ModuleInfo(key: "group_norm") var groupNorm: GroupNorm
+    @ModuleInfo(key: "group_norm") var groupNorm: GroupNorm32
     @ModuleInfo(key: "to_q") var toQ: Linear
     @ModuleInfo(key: "to_k") var toK: Linear
     @ModuleInfo(key: "to_v") var toV: Linear
     @ModuleInfo(key: "to_out") var toOut: [Linear]
 
     init(_ c: Int) {
-        _groupNorm.wrappedValue = GroupNorm(groupCount: 32, dimensions: c, eps: 1e-6, pytorchCompatible: true)
+        _groupNorm.wrappedValue = GroupNorm32(groupCount: 32, dimensions: c, eps: 1e-6, pytorchCompatible: true)
         _toQ.wrappedValue = Linear(c, c)
         _toK.wrappedValue = Linear(c, c)
         _toV.wrappedValue = Linear(c, c)
@@ -108,7 +115,7 @@ final class VAEEncoderNet: Module {
     @ModuleInfo(key: "conv_in") var convIn: Conv2d
     @ModuleInfo(key: "down_blocks") var downBlocks: [VAEDownBlock]
     @ModuleInfo(key: "mid_block") var midBlock: VAEMidBlock
-    @ModuleInfo(key: "conv_norm_out") var normOut: GroupNorm
+    @ModuleInfo(key: "conv_norm_out") var normOut: GroupNorm32
     @ModuleInfo(key: "conv_out") var convOut: Conv2d
 
     init(channels: [Int] = [128, 256, 512, 512], layersPerBlock: Int = 2, latentChannels: Int = 32) {
@@ -118,7 +125,7 @@ final class VAEEncoderNet: Module {
                          downsample: i < channels.count - 1)
         }
         _midBlock.wrappedValue = VAEMidBlock(channels.last!)
-        _normOut.wrappedValue = GroupNorm(groupCount: 32, dimensions: channels.last!, eps: 1e-6, pytorchCompatible: true)
+        _normOut.wrappedValue = GroupNorm32(groupCount: 32, dimensions: channels.last!, eps: 1e-6, pytorchCompatible: true)
         _convOut.wrappedValue = Conv2d(inputChannels: channels.last!, outputChannels: 2 * latentChannels,
                                        kernelSize: 3, padding: 1)
         super.init()

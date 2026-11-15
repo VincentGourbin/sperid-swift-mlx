@@ -19,17 +19,17 @@
 | T-2.5 | **Mesure** : un forward L = 12 294, lot 1 et 2 — temps, pic MLX, SDPA fusionné ou non | `plan/05-jalon2.md` | T-2.4 | validée (temps à remesurer) |
 | T-2.6 | Échantillonneur Euler + CFG (séquentiel et batché), annulable, une synchro par pas (IT-2) | `plan/05-jalon2.md` | T-2.5 | validée |
 | T-2.7 | `idol denoise --cond cond.safetensors` → latent ; chaîne avec T-1.7 → `.ply` ⛔ G-2 | `plan/05-jalon2.md` | T-2.6 | validée (GATE G-2 posée) |
-| T-3.1 | Décision de source DINOv3 (G-0) appliquée ; relire les clés du dépôt choisi | `plan/06-jalon3.md` | T-2.7, G-0 | à faire |
-| T-3.2 | DINOv3 ViT-H+/16 (patch embed, registres, RoPE 2D `rotate_half`, layerscale, gated SiLU) + layer_norm final d'Idol | `plan/06-jalon3.md` | T-3.1 | à faire |
-| T-3.3 | Encodeur VAE FLUX.2 copié de `flux-2-swift-mlx` (encodeur seul) ; vérification des valeurs (Comfy = local `FLUX.2-small-decoder` = `FLUX.2-dev`) | `plan/06-jalon3.md` | T-3.2 | à faire |
-| T-3.4 | Patchification 2×2, normalisation BN (eps 1e-4), padding 5 → `feature2` | `plan/06-jalon3.md` | T-3.3 | à faire |
-| T-3.5 | `ImageConditioner` (les deux flux, résidence : libérés après usage en `lean`) + `idol encode` ⛔ G-3 | `plan/06-jalon3.md` | T-3.4 | à faire |
-| T-4.1 | Recadrage (`Preprocess/`) : côté court, érosion 1 px, boîte, carré × marge, composite noir ; Lanczos via vImage | `plan/07-jalon4.md` | T-3.5 | à faire |
-| T-4.2 | Protocole `BackgroundRemover` + implémentation Vision (macOS 14+/iOS 17+) comme repli | `plan/07-jalon4.md` | T-4.1 | à faire |
-| T-4.3 | Swin-L (fenêtres décalées, biais de position relative) | `plan/07-jalon4.md` | T-4.2 | à faire |
-| T-4.4 | Convolution déformable (bilinéaire + matmul, puis noyau Metal si > 20 % du temps) | `plan/07-jalon4.md` | T-4.3 | à faire |
-| T-4.5 | Décodeur BiRefNet + `remove_background` | `plan/07-jalon4.md` | T-4.4 | à faire |
-| T-4.6 | `IdolPipeline` (API publique : `generate(image:request:progress:)`, annulation, résidence par étape), `idol generate` ⛔ G-4 | `plan/07-jalon4.md` | T-4.5 | à faire |
+| T-3.1 | Décision de source DINOv3 (G-0) appliquée ; relire les clés du dépôt choisi | `plan/06-jalon3.md` | T-2.7, G-0 | validée |
+| T-3.2 | DINOv3 ViT-H+/16 (patch embed, registres, RoPE 2D `rotate_half`, layerscale, gated SiLU) + layer_norm final d'Idol | `plan/06-jalon3.md` | T-3.1 | validée |
+| T-3.3 | Encodeur VAE FLUX.2 copié de `flux-2-swift-mlx` (encodeur seul) ; vérification des valeurs (Comfy = local `FLUX.2-small-decoder` = `FLUX.2-dev`) | `plan/06-jalon3.md` | T-3.2 | validée |
+| T-3.4 | Patchification 2×2, normalisation BN (eps 1e-4), padding 5 → `feature2` | `plan/06-jalon3.md` | T-3.3 | validée |
+| T-3.5 | `ImageConditioner` (les deux flux, résidence : libérés après usage en `lean`) + `idol encode` ⛔ G-3 | `plan/06-jalon3.md` | T-3.4 | validée |
+| T-4.1 | Recadrage (`Preprocess/`) : côté court, érosion 1 px, boîte, carré × marge, composite noir ; Lanczos via vImage | `plan/07-jalon4.md` | T-3.5 | validée |
+| T-4.2 | Protocole `BackgroundRemover` + implémentation Vision (macOS 14+/iOS 17+) comme repli | `plan/07-jalon4.md` | T-4.1 | validée |
+| T-4.3 | Swin-L (fenêtres décalées, biais de position relative) | `plan/07-jalon4.md` | T-4.2 | reportée (Vision en attendant) |
+| T-4.4 | Convolution déformable (bilinéaire + matmul, puis noyau Metal si > 20 % du temps) | `plan/07-jalon4.md` | T-4.3 | reportée (Vision en attendant) |
+| T-4.5 | Décodeur BiRefNet + `remove_background` | `plan/07-jalon4.md` | T-4.4 | reportée (Vision en attendant) |
+| T-4.6 | `IdolPipeline` (API publique : `generate(image:request:progress:)`, annulation, résidence par étape), `idol generate` ⛔ G-4 | `plan/07-jalon4.md` | T-4.5 | validée |
 | T-5.1 | Chargeur LoRA de phase (448 tenseurs) et `LoRALinear` à deux experts | `plan/08-jalon5.md` | T-4.6 | à faire |
 | T-5.2 | Fusion par phase (deux jeux fusionnés) contre delta à la volée : mesure | `plan/08-jalon5.md` | T-5.1 | à faire |
 | T-5.3 | `IdolRequest.turbo`, `idol generate --turbo` ⛔ G-5 | `plan/08-jalon5.md` | T-5.2 | à faire |

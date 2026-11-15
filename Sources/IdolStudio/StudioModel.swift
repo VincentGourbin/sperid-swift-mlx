@@ -47,6 +47,10 @@ final class StudioModel {
     private var cancelFlag = false
 
     func start() {
+        // `idol-studio path/to/file.ply` shows that file right away (also how the viewer is checked from a script)
+        if let ply = CommandLine.arguments.dropFirst().first(where: { $0.hasSuffix(".ply") }) {
+            openPLY(URL(fileURLWithPath: ply))
+        }
         let box = box, root = root
         worker.async {
             do {
@@ -87,6 +91,26 @@ final class StudioModel {
     }
 
     func cancel() { cancelFlag = true }
+
+    /// Shows any 3DGS .ply (Idol's, the Python SDK's, other tools').
+    func openPLY(_ url: URL) {
+        do {
+            cloud = try PLYReader.read(url); cloudVersion += 1
+            timings = "\(url.lastPathComponent) · \(cloud!.count) Gaussians"
+        } catch { status = "Could not read \(url.lastPathComponent): \(error.localizedDescription)" }
+    }
+
+    /// Debug toggle for RealityKit's (undocumented) quaternion order: redraw with the other layout.
+    func flipQuaternionOrder() {
+        if #available(macOS 27.0, *) { SplatEntity.wFirst.toggle() }
+        cloudVersion += 1
+        status = "Quaternion order: \(quaternionOrderLabel)"
+    }
+
+    var quaternionOrderLabel: String {
+        if #available(macOS 27.0, *) { return SplatEntity.wFirst ? "w, x, y, z" : "x, y, z, w" }
+        return "-"
+    }
 
     func generate() {
         guard let url = inputURL, ready, !busy else { return }

@@ -30,6 +30,11 @@ struct ContentView: View {
                     Text(model.timings).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
                 }
             }
+            HStack {
+                Spacer()
+                Button("Quaternion order: \(model.quaternionOrderLabel)") { model.flipQuaternionOrder() }
+                    .buttonStyle(.link).font(.caption)
+            }
             Text("EXAMPLES — CLICK TO LOAD THE IMAGE AND ITS SETTINGS").font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 8) {
@@ -90,6 +95,11 @@ struct ContentView: View {
                     .disabled(!model.ready || model.busy || model.inputURL == nil)
                 if model.busy { Button("Cancel") { model.cancel() } }
                 Spacer()
+                Button("Open .ply…") {
+                    let panel = NSOpenPanel()
+                    panel.allowedContentTypes = [UTType(filenameExtension: "ply") ?? .data]
+                    if panel.runModal() == .OK, let url = panel.url { model.openPLY(url) }
+                }
                 if let folder = model.lastOutputFolder {
                     Button("Show .ply") { NSWorkspace.shared.activateFileViewerSelecting([folder]) }
                 }

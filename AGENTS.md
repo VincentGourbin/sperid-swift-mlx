@@ -96,5 +96,5 @@ En cas d'échec, la sortie donne les 20 premières lignes utiles ; le journal co
   `Tests/SperidTests`, `parity/` (fixtures tiny), `Scripts/`, `tasks/`, `reference/` (non committé).
 - Poids : `$SPERID_MODELS_DIR/<repo>/<fichier>` (ex. `speridlabs/idol/denoiser.safetensors`). Jamais en dur.
 - Faits d'architecture : `plan/02.1-pipeline.md` … `plan/02.8-turbo.md`. Pièges : `plan/11-pieges.md`
-  (20 points, cités par numéro dans les fiches).
+  (21 points, cités par numéro dans les fiches).
 - Mémoire durable : `docs/knowledge/agent-memory.md` (conventions de Vincent, état, pièges).

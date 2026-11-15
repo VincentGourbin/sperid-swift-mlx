@@ -5,7 +5,7 @@ From the avocado's preprocessed pixels (parity/denoiser_avocado.safetensors, `pi
   dino32_tokens      DINOv3 fp32 (CPU) `last_hidden_state` after Idol's parameter-free layer_norm = feature1, fp32
   vae32_mean/logvar  FLUX.2 VAE encoder fp32 (CPU): the posterior moments [1, 32, 128, 128] (after quant_conv)
   vae_noise          the posterior ε [1, 32, 128, 128] (drawn here, CPU generator)
-  feature1_bf16, feature2_bf16   the SDK's own ImageEncoder path (bf16, CPU) with that ε replayed
+  feature1_bf16, feature2_bf16   the SDK's own ImageEncoder path (bf16, MPS) with that ε replayed
   vae32_feature2     feature2 computed from the fp32 moments and ε through the SDK's _flux2_tokens code
 
 Usage: .venv-ref/bin/python -I Scripts/reference/encoder_fixtures.py
@@ -66,10 +66,11 @@ def main():
         del dino32, vae32, enc32
 
         start = time.time()
-        enc16 = ImageEncoder(DINO, FLUX, dinov3_dtype="bf16", device="cpu")
+        device = "mps" if torch.backends.mps.is_available() else "cpu"  # bf16 on CPU takes > 10 min
+        enc16 = ImageEncoder(DINO, FLUX, dinov3_dtype="bf16", device=device)
         cond = enc16(pixels)
-        out["feature1_bf16"], out["feature2_bf16"] = cond["feature1"].float(), cond["feature2"].float()
-        print(f"bf16 encoders (cpu): {time.time() - start:.1f} s")
+        out["feature1_bf16"], out["feature2_bf16"] = cond["feature1"].float().cpu(), cond["feature2"].float().cpu()
+        print(f"bf16 encoders ({device}): {time.time() - start:.1f} s")
 
     path = root / "parity" / "encoders_avocado.safetensors"
     save_deterministic(out, path, meta("encoders_avocado", 0))

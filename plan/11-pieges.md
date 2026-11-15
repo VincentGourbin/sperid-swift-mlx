@@ -1,4 +1,4 @@
-## 11. Checklist de pièges (contrat de revue — cocher à chaque fiche, 20 points)
+## 11. Checklist de pièges (contrat de revue — cocher à chaque fiche, 21 points)
 
 1. **RoPE du débruiteur avant `q_norm`/`k_norm`** — l'inverse de YuE2. Rotation dépendante de la
    tête, angles appris (RePo), recalculés à chaque bloc depuis son entrée.
@@ -36,3 +36,6 @@
     `piFloat32 = Float(Double.pi)`. À ~3000 rad, un ulp de π décale sin/cos de 2,4e-4. Et l'`exp`
     fp32 de torch n'est pas correctement arrondi (≈ 1 ulp) : la trigonométrie sur grands angles a sa
     propre tolérance (3e-4), le reste des couches tient 1e-5.
+21. **Le `.ply` 3DGS est y-BAS** : `save_ply` écrit `(x, −z, y)` (« y-up » selon sa docstring, mais le haut
+    de l'objet tombe sur −y, convention COLMAP) ; un moteur y-haut (RealityKit) le tourne d'un demi-tour
+    autour de x, sinon l'objet est rendu à l'envers (vu le 2026-11-15 : faces coupées des avocats invisibles).

@@ -17,7 +17,9 @@ public final class FluxVAEEncoder: Module {
     static let batchNormEps: Float = 1e-4
     public static let latentChannels = 32
 
-    public init(computeDType: DType = .bfloat16) {
+    /// fp32 by default: the encoder is small (≈ 34 M parameters, run once) and fp32 sits closer to the
+    /// model than the reference's own bf16 (T-3.4: bf16 here 2.5e-2 from fp32, the SDK's bf16 0.95e-2).
+    public init(computeDType: DType = .float32) {
         self.computeDType = computeDType
         _encoder.wrappedValue = VAEEncoderNet()
         _quantConv.wrappedValue = Conv2d(inputChannels: 64, outputChannels: 64, kernelSize: 1)
@@ -28,14 +30,15 @@ public final class FluxVAEEncoder: Module {
     /// Loads the diffusers `vae/diffusion_pytorch_model.safetensors` (encoder half, `quant_conv`, `bn`):
     /// conv weights [O, I, kh, kw] → [O, kh, kw, I]; the decoder keys are skipped; `computeDType` for
     /// the network (the reference: bf16), BN statistics kept fp32.
-    public static func load(url: URL, computeDType: DType = .bfloat16) throws -> FluxVAEEncoder {
+    public static func load(url: URL, computeDType: DType = .float32) throws -> FluxVAEEncoder {
         let model = FluxVAEEncoder(computeDType: computeDType)
         var selected: [String: MLXArray] = [:]
         for (key, value) in try loadArrays(url: url) {
             guard key.hasPrefix("encoder.") || key.hasPrefix("quant_conv.") || key.hasPrefix("bn.running") else { continue }
             var v = value
             if v.ndim == 4 { v = v.transposed(0, 2, 3, 1) }
-            if !key.hasPrefix("bn.") { v = v.asType(computeDType) }
+            // network in computeDType; norm affine parameters and the BN statistics stay fp32
+            if !key.hasPrefix("bn.") && !key.contains("norm") { v = v.asType(computeDType) }
             eval(v)
             selected[key] = v
         }
@@ -44,8 +47,11 @@ public final class FluxVAEEncoder: Module {
     }
 
     /// Posterior moments of `pixels` [1, 3, H, W] ∈ [0, 1]: (mean, logvar), NHWC [1, H/8, W/8, 32].
-    public func moments(_ pixels: MLXArray) -> (mean: MLXArray, logvar: MLXArray) {
-        let x = (pixels.transposed(0, 2, 3, 1).asType(computeDType) * 2 - 1)
+    /// `sdkInput`: the SDK feeds `images.to(torch.bfloat16) * 2 - 1`, rounded **and** computed in bf16
+    /// whatever the VAE's own precision — on by default to see what the reference sees.
+    public func moments(_ pixels: MLXArray, sdkInput: Bool = true) -> (mean: MLXArray, logvar: MLXArray) {
+        let nhwc = pixels.transposed(0, 2, 3, 1)
+        let x = sdkInput ? (nhwc.asType(.bfloat16) * 2 - 1).asType(computeDType) : nhwc.asType(computeDType) * 2 - 1
         let m = quantConv(encoder(x))
         let c = Self.latentChannels
         let logvar = clip(m[.ellipsis, c...].asType(.float32), min: -30, max: 20).asType(m.dtype)
