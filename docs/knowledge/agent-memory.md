@@ -10,8 +10,9 @@
 - Rien de publié (push public, upload HF) sans accord explicite. Dépôt GitHub **privé** pour l'instant.
 
 ## État (2026-11-15)
-- T-1.0 validée ; G-0 posée (source DINOv3, nom du dépôt, détourage).
-- Jalons 1-2 n'ont pas besoin de DINOv3 : on peut avancer pendant que l'accès est demandé.
+- Jalon 1 validé (T-1.0 à T-1.7) ; GATE G-1 posée (revue visuelle de deux `.ply`).
+- DINOv3 : accès accordé, poids dans le cache HF. Détourage (Q3 de G-0) encore ouvert.
+- Les fixtures real des décodeurs utilisent un latent de la branche non conditionnée du vrai débruiteur.
 
 ## Pièges durables
 - Le SDK refuse de démarrer sans accès aux encodeurs gated (`require_encoder_access`) : les fixtures

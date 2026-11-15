@@ -19,4 +19,6 @@ l'égalité des valeurs (T-3.3).
 **Non retenu** : choisir Comfy par défaut sans accord (licence) ; dépendre de `flux-2-swift-mlx` pour
 charger le VAE (voir `package-layout.md`).
 
-**Ouvert** : réponse de Vincent à G-0 ; format des clés du dépôt DINOv3 officiel (non relu, gated).
+**Mise à jour 2026-11-15** : accès accordé ; DINOv3 et `FLUX.2-dev/vae` téléchargés dans le cache HF.
+
+**Ouvert** : format des clés du dépôt DINOv3 officiel (à relire en T-3.1).
