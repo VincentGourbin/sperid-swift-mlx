@@ -18,7 +18,12 @@ if [ "$status" -eq 0 ] && grep -q "TEST SUCCEEDED\|✔ Test run" .local-runs/tes
   # Ne compter que les tests sautés par swift-testing (↷) ou XCTest, pas les lignes
   # de log d'xcodebuild du type « Metadata extraction skipped ».
   skipped=$(grep -c "↷ Test \|Test Case .* skipped" .local-runs/tests.log || true)
-  echo "TESTS OK (${n:-?} tests, ${skipped} skippés)"
+  # A filter that matches nothing still "succeeds" with no test run: never report that as green.
+  if [ -z "${n:-}" ] || [ "${n}" -eq 0 ]; then
+    echo "TESTS FAILED — aucun test exécuté (filtre « ${1:-} » sans correspondance ?) — journal : .local-runs/tests.log"
+    exit 1
+  fi
+  echo "TESTS OK (${n} tests, ${skipped} skippés)"
   exit 0
 fi
 # Le marqueur de succès explicite (ci-dessus) est prioritaire : le log contient aussi du

@@ -20,9 +20,13 @@ clone() {  # clone <dir> <url> <commit>
 }
 clone idol-sdk https://github.com/speridlabs/idol-sdk.git 8db7003
 # DINOv3 (modeling_dinov3_vit.py) : seule la référence transformers fait foi, pas la mémoire.
+TRANSFORMERS_SHA=3a134bc37f7c22c801b618e289b0255425f22647
 if [ ! -d reference/transformers ]; then
-  git clone --quiet --depth 1 --filter=blob:none --sparse https://github.com/huggingface/transformers.git reference/transformers
+  git init --quiet reference/transformers
+  git -C reference/transformers remote add origin https://github.com/huggingface/transformers.git
   git -C reference/transformers sparse-checkout set src/transformers/models/dinov3_vit
+  git -C reference/transformers fetch --quiet --depth 1 --filter=blob:none origin "$TRANSFORMERS_SHA"
+  git -C reference/transformers checkout --quiet FETCH_HEAD
 fi
 echo "transformers @ $(git -C reference/transformers rev-parse --short HEAD)"
 ls -l reference

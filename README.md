@@ -1,6 +1,6 @@
 # sperid-swift-mlx
 
-Swift / MLX ports of the [Speri Labs](https://huggingface.co/speridlabs) models for Apple Silicon, starting with **Idol**: one picture of an object in, up to a million 3D Gaussians out, written as a standard 3DGS `.ply`, with no Python at inference time.
+Swift / MLX ports of the [speridlabs](https://huggingface.co/speridlabs) models for Apple Silicon, starting with **Idol**: one picture of an object in, up to a million 3D Gaussians out, written as a standard 3DGS `.ply`, with no Python at inference time.
 
 > **Status — 0.1.0, architecture in place (2026-11-15).** The package, the output stage (activations, PLY writer, camera), the Euler time grid, the octree's systematic resampling and the weight contracts are written and tested without weights. The models themselves land milestone by milestone; see [the plan](PLAN.md) and [the cards](tasks/INDEX.md). Nothing here generates a splat yet.
 
@@ -32,7 +32,7 @@ image ─▶ BiRefNet cut-out, square crop, 1024² on black
       ─▶ 32 Gaussians per anchor ─▶ .ply (y-up) + camera.json
 ```
 
-Expected costs on an M3 Max are in [plan/03-budget.md](plan/03-budget.md): about 150 s for the 50-step base model and 7-8 s in turbo, both **calculated, not measured**.
+Expected costs on an M3 Max are in [plan/03-budget.md](plan/03-budget.md): 150-300 s for the 50-step base model and 8-16 s in turbo, **calculated from the dimensions with an assumed 7-15 TFLOPS, not measured**.
 
 ## Getting started
 

@@ -1,4 +1,4 @@
-## 11. Checklist de pièges (contrat de revue — cocher à chaque fiche)
+## 11. Checklist de pièges (contrat de revue — cocher à chaque fiche, 19 points)
 
 1. **RoPE du débruiteur avant `q_norm`/`k_norm`** — l'inverse de YuE2. Rotation dépendante de la
    tête, angles appris (RePo), recalculés à chaque bloc depuis son entrée.
@@ -28,5 +28,7 @@
 16. Pas de `swift build` pour un binaire (metallib) ; mlx-swift épinglé `exact` ; jamais `branch:`.
 17. Jamais de chemin absolu, de poids, de fixture real ni d'en-tête de dépôt gated committé ;
     `parity/*` uniquement par le script Python.
-18. Annulation testée **avant** chaque évaluation du débruiteur et entre les niveaux d'octree ; une
+18. **Deux eps de LayerNorm** : 1e-6 dans les blocs, 1e-5 pour RePo, les `F.layer_norm` sans
+    paramètres (sorties, jetons DINOv3) et DINOv3 ; un eps unique passe les tests tiny et fausse le real.
+19. Annulation testée **avant** chaque évaluation du débruiteur et entre les niveaux d'octree ; une
     seule synchronisation par pas (IT-2).
