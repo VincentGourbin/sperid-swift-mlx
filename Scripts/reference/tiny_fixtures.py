@@ -65,8 +65,9 @@ def build():
     m = fp32(L.PcdAbsolutePositionEmbedderv2(C, in_channels=3))
     add(out, "pos_v2", None, {"x": pts}, {"y": m(pts)})
 
-    t = torch.tensor([0.0, 3.5, 256.0, 1000.0])
-    for name, kw in (("time_embed", {}), ("level_embed", {"max_period": 1024, "two_pi": True})):
+    # time: 1000·t of the denoiser; level: the octree resolutions 1 << l the decoder really sees
+    for name, t, kw in (("time_embed", torch.tensor([0.0, 3.5, 256.0, 1000.0]), {}),
+                        ("level_embed", torch.tensor([2.0, 16.0, 128.0, 256.0]), {"max_period": 1024, "two_pi": True})):
         m = fp32(L.SinusoidalEmbedder(C, **kw)); randomize(m, g)
         add(out, name, m, {"t": t}, {"y": m(t)})
 

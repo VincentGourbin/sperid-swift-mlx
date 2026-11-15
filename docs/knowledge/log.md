@@ -8,3 +8,5 @@
 - 2026-11-15 — **Écarts de la référence notés** : turbo 8 pas (docstring `turbo.py`) contre 5 (carte) ; `num_gaussians` « multiple of 32 » (README) mais arrondi par le code ; `systematic_sample` divise par `clamp_min(sum, 1)`.
 - 2026-11-15 — T-1.0 validée : `BUILD OK`, `TESTS OK (19 tests, 0 skippés)`.
 - 2026-11-15 — **G-0** : DINOv3 par le dépôt officiel (accès demandé, en attente) ; nom `sperid-swift-mlx` confirmé ; détourage encore ouvert.
+- 2026-11-15 — **T-1.3** : les décodeurs amont forcent fp16 via `self.dtype` même sur CPU (remis en fp32 pour le tier 1) ; `randomize` ne doit toucher que le `state_dict` (les `freqs` non persistants des plongements v2 avaient été écrasés). `torch.linspace` fp32 = FMA par moitié (reproduit au bit en Swift avec `addingProduct`).
+- 2026-11-15 — **T-1.4** : `Float.pi` arrondi vers zéro → 2,4e-4 sur le plongement v2 ; `Float(Double.pi)` le ramène sous 1e-5. `args * 2 * torch.pi` = deux arrondis. `exp` de torch ≈ 1 ulp (non CR) : tolérance trig 3e-4. Couches des décodeurs à rel < 1e-5 en fp32.

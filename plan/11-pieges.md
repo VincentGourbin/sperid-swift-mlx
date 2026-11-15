@@ -1,4 +1,4 @@
-## 11. Checklist de pièges (contrat de revue — cocher à chaque fiche, 19 points)
+## 11. Checklist de pièges (contrat de revue — cocher à chaque fiche, 20 points)
 
 1. **RoPE du débruiteur avant `q_norm`/`k_norm`** — l'inverse de YuE2. Rotation dépendante de la
    tête, angles appris (RePo), recalculés à chaque bloc depuis son entrée.
@@ -32,3 +32,7 @@
     paramètres (sorties, jetons DINOv3) et DINOv3 ; un eps unique passe les tests tiny et fausse le real.
 19. Annulation testée **avant** chaque évaluation du débruiteur et entre les niveaux d'octree ; une
     seule synchronisation par pas (IT-2).
+20. **`Float.pi` de Swift est arrondi vers zéro** (un ulp sous le π fp32 de torch) : utiliser
+    `piFloat32 = Float(Double.pi)`. À ~3000 rad, un ulp de π décale sin/cos de 2,4e-4. Et l'`exp`
+    fp32 de torch n'est pas correctement arrondi (≈ 1 ulp) : la trigonométrie sur grands angles a sa
+    propre tolérance (3e-4), le reste des couches tient 1e-5.

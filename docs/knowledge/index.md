@@ -16,7 +16,8 @@ Mesures reproductibles (état des horloges GPU, écart ±2 %). Rien pour l'insta
 - [Profils de référence (prévus)](decisions/reference-profiles.md) — matrice `<bits>bit-fast|lean` + famille `turbo/`, tout « à mesurer ».
 
 ## Pitfalls
-Numérotés comme `plan/11-pieges.md`. Rien de rencontré en exécution pour l'instant.
+Numérotés comme `plan/11-pieges.md`.
+- [`Float.pi` arrondi vers zéro](pitfalls/swift-float-pi-rounded-toward-zero.md) — un ulp sous le π de torch, 2,4e-4 sur sin/cos à 3000 rad ; `Float(Double.pi)` ; l'`exp` de torch à ~1 ulp impose une tolérance trig de 3e-4 (n° 20).
 
 ## Investigations
 Rien pour l'instant.

@@ -29,3 +29,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `.venv-ref/bin/python -I Scripts/reference/tiny_fixtures.py` → `wrote …/parity/tiny_layers.safetensors (193 tensors, 2168870 bytes)` ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
 - Limites connues : fichier 2,17 Mo (seuil indicatif de la fiche 2 Mo, accepté) ; descente tiny à 4 niveaux (real : 8).
 - Pas d'agent : 0 · appels d'outils : 4
+
+## T-1.4 — Couches communes Swift et parité tiny — 2026-11-15 — validée
+- Fait : `Sources/IdolCore/Models/Layers/{Norms,Embedders,Attention,CrossBlocks,ModuleLoading}.swift` (LayerNorm32 à eps paramétré, MultiHeadRMSNorm L2, SinusoidalEmbedder, PcdPositionEmbedderV2, FeedForwardNet GELU tanh, MultiHeadAttention self/cross, ModulatedCrossOnlyBlock, TransformerCrossBlock, chargement strict `verify: .all`) ; `Tests/SperidTests/{TinyParity,TinyLayersParityTests}.swift`.
+- Bug réel rencontré : `Float.pi` de Swift arrondi vers zéro (piège 20, `docs/knowledge/pitfalls/swift-float-pi-rounded-toward-zero.md`) ; `args * 2 * π` en deux arrondis ; fréquences v2 : `torch.linspace` = FMA par moitié ; générateur : `randomize` écrasait les buffers non persistants (corrigé, fixtures régénérées).
+- Validation : `Scripts/check-build.sh` → `BUILD OK` ; `Scripts/check-tests.sh TinyLayersParityTests` → `TESTS OK (7 tests, 0 skippés)` (rel < 1e-5, trig grands angles < 3e-4) ; `Scripts/check-fixtures.sh` → `FIXTURES OK`
+- Limites connues : tolérance trig 3e-4 (l'`exp` fp32 de torch n'est pas correctement arrondi).
+- Pas d'agent : 0 · appels d'outils : 12

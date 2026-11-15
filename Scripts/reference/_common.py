@@ -40,11 +40,13 @@ def save_deterministic(tensors, path, metadata):
 
 
 def randomize(module, generator, scale=0.2):
-    """Every parameter and float buffer ~ N(0, scale²): zero-initialised tensors (shift tables,
-    offsets) must be exercised too."""
+    """Every float entry of the state_dict (parameters and *persistent* buffers) ~ N(0, scale²):
+    zero-initialised tensors (shift tables, offsets) must be exercised too. Non-persistent buffers
+    (the position embedders' `freqs`) are computed, never stored: they must stay untouched."""
     with torch.no_grad():
-        for t in list(module.parameters()) + [b for b in module.buffers() if b.is_floating_point()]:
-            t.copy_(torch.randn(t.shape, generator=generator) * scale)
+        for t in module.state_dict(keep_vars=True).values():
+            if t.is_floating_point():
+                t.copy_(torch.randn(t.shape, generator=generator) * scale)
 
 
 class OctreeNoiseRecorder:
