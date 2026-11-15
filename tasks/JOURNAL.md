@@ -108,3 +108,10 @@ Une entrée par fiche, en fin de fichier (gabarit dans `AGENTS.md` §6).
 - Validation : `idol generate --image …/avocado.webp` → `GENERATE OK avocado: 262144 Gaussians — preprocess 0.1 s, encode 3.3 s, denoise 596.0 s, decode 3.1 s` ; image prétraitée vs SDK : écart moyen 0,35/255, IoU 0,984 ; `TESTS OK (1 tests)` PLYRoundTrip ; rendu `RENDER OK` (vue de la caméra prédite = image d'entrée)
 - Limites connues : détourage Vision ≠ BiRefNet (images sans alpha) ; IoU 0,984 < 0,99 (bords Lanczos) ; débruitage 10 min (turbo : Jalon 5).
 - Pas d'agent : 0 · appels d'outils : ~25
+
+## T-5.1 → T-5.3 — idol-turbo — 2026-11-15 — validées (G-5 : revue visuelle envoyée)
+- Fait : `Models/Denoiser/TurboLoRA.swift` (`PhaseLoRALinear` : base + delta fp32 `(x·Aᵀ·Bᵀ)·4`, deux experts commutés par `TurboPhaseState` ; injection dans les 28 blocs via `update(modules:)`), `FlowSampler(turbo:)` (slow si t ≥ 0,5, fast sinon), `IdolPipeline(useTurbo:)` (LoRA injectée si présente, phase nulle = base exacte), `idol generate --turbo`, bascule Turbo dans Idol Studio (par défaut) ; `Scripts/reference/turbo_fixtures.py` (le `turbo.py` officiel) ; `Tests/SperidTests/RealTurboParityTests.swift`.
+- Bug réel rencontré : aucun. T-5.2 (fusion par phase contre delta à la volée) : delta à la volée retenu sans mesure comparative (fidèle à la référence, +3 % FLOPs CALCUL) — à mesurer avec les leviers de performance.
+- Validation : `Scripts/check-tests.sh RealTurboParityTests` → `TESTS OK (3 tests, 0 skippés)` avec `REALTURBO float32 slow vs fp32: swift 0.00014110006`, `fast 0.00017150278`, `float16 slow 0.0018322907 (python 0.0016136391)`, `fast 0.0036271727 (python 0.0035646113)`, `5-step final latent relL2 0.002539` ; `idol generate --turbo` sur 4 exemples du Space → 18,8-24,7 s de débruitage, ≈ 25-31 s au total par objet.
+- Limites connues : temps non mesurés selon le protocole (ordre de grandeur).
+- Pas d'agent : 0 · appels d'outils : ~10

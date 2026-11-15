@@ -25,6 +25,8 @@ final class StudioModel {
     var seed: UInt64 = 42
     var randomSeed = false
     var numGaussians = 262_144
+    /// idol-turbo: 5 guidance-free steps (≈ 20× fewer evaluations than the 50-step base with CFG).
+    var turbo = true
 
     var inputURL: URL?
     var inputImage: NSImage?
@@ -115,8 +117,9 @@ final class StudioModel {
     func generate() {
         guard let url = inputURL, ready, !busy else { return }
         if randomSeed { seed = UInt64.random(in: 0..<(1 << 31)) }
-        let request = IdolRequest(mode: mode, seed: seed, steps: steps, cfgStrength: cfg, rescaleT: rescaleT,
-                                  numGaussians: numGaussians)
+        let request = IdolRequest(mode: mode, seed: seed, steps: turbo ? 5 : steps, cfgStrength: turbo ? 0 : cfg,
+                                  rescaleT: rescaleT, numGaussians: numGaussians)
+        let useTurbo = turbo
         busy = true; cancelFlag = false; status = "Generating…"
         let box = box, root = root
         worker.async { [weak self] in
@@ -124,7 +127,7 @@ final class StudioModel {
                 let image = try RGBAImage(contentsOf: url)
                 var noise = SeededNoise(seed: request.seed)
                 let output = try box.pipeline!.generate(
-                    image: image, request: request, noise: &noise,
+                    image: image, request: request, noise: &noise, useTurbo: useTurbo,
                     isCancelled: { [weak self] in MainActor.assumeIsolatedOrFalse { self?.cancelFlag ?? false } },
                     progress: { p in Task { @MainActor in self?.stage = p.stage; self?.fraction = p.fraction } })
                 let name = url.deletingPathExtension().lastPathComponent + "-seed\(request.seed)"

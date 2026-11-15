@@ -84,6 +84,7 @@ struct ContentView: View {
                 }
                 return true
             }
+            Toggle("Turbo — 5 steps, about 20× faster (idol-turbo)", isOn: $model.turbo)
             Picker("Input type", selection: $model.mode) {
                 Text("Synthetic").tag(IdolCropMode.synthetic)
                 Text("Real photo").tag(IdolCropMode.real)

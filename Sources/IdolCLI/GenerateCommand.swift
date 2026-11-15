@@ -18,14 +18,15 @@ struct GenerateCommand: ParsableCommand {
     @Option(name: .customLong("rescale-t"), help: "Time shift.") var rescaleT = 3.0
     @Option(help: "Gaussians (32 768 … 1 048 576).") var numGaussians = 262_144
     @Option(help: "Guidance: sequential | batched.") var guidance = "sequential"
+    @Flag(help: "idol-turbo: 5 guidance-free steps with the phase LoRAs (overrides --steps and --cfg).") var turbo = false
     @Option(help: "Output folder.") var out = "outputs"
     @Option(help: "Models directory.") var modelsDir: String?
 
     func run() throws {
         let root = modelsDir.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? ModelsDirectory.resolve()
         guard let cropMode = IdolCropMode(rawValue: mode) else { throw ValidationError("--mode synthetic|real") }
-        let request = IdolRequest(mode: cropMode, seed: seed, steps: steps, cfgStrength: cfg, rescaleT: rescaleT,
-                                  numGaussians: numGaussians)
+        let request = IdolRequest(mode: cropMode, seed: seed, steps: turbo ? 5 : steps, cfgStrength: turbo ? 0 : cfg,
+                                  rescaleT: rescaleT, numGaussians: numGaussians)
         let loadStart = Date()
         let pipeline = try IdolPipeline(modelsDirectory: root)
         print(String(format: "loaded in %.1f s", Date().timeIntervalSince(loadStart)))
@@ -33,7 +34,7 @@ struct GenerateCommand: ParsableCommand {
         var noise = SeededNoise(seed: seed)
         var lastStage = ""
         let output = try pipeline.generate(image: input, request: request, noise: &noise,
-                                           guidance: guidance == "batched" ? .batched : .sequential,
+                                           guidance: guidance == "batched" ? .batched : .sequential, useTurbo: turbo,
                                            progress: { p in
             if p.stage.rawValue != lastStage { print("  \(p.stage.rawValue)…"); lastStage = p.stage.rawValue }
         })

@@ -30,9 +30,9 @@
 | T-4.4 | Convolution déformable (bilinéaire + matmul, puis noyau Metal si > 20 % du temps) | `plan/07-jalon4.md` | T-4.3 | reportée (Vision en attendant) |
 | T-4.5 | Décodeur BiRefNet + `remove_background` | `plan/07-jalon4.md` | T-4.4 | reportée (Vision en attendant) |
 | T-4.6 | `IdolPipeline` (API publique : `generate(image:request:progress:)`, annulation, résidence par étape), `idol generate` ⛔ G-4 | `plan/07-jalon4.md` | T-4.5 | validée |
-| T-5.1 | Chargeur LoRA de phase (448 tenseurs) et `LoRALinear` à deux experts | `plan/08-jalon5.md` | T-4.6 | à faire |
-| T-5.2 | Fusion par phase (deux jeux fusionnés) contre delta à la volée : mesure | `plan/08-jalon5.md` | T-5.1 | à faire |
-| T-5.3 | `IdolRequest.turbo`, `idol generate --turbo` ⛔ G-5 | `plan/08-jalon5.md` | T-5.2 | à faire |
+| T-5.1 | Chargeur LoRA de phase (448 tenseurs) et `LoRALinear` à deux experts | `plan/08-jalon5.md` | T-4.6 | validée |
+| T-5.2 | Fusion par phase (deux jeux fusionnés) contre delta à la volée : mesure | `plan/08-jalon5.md` | T-5.1 | validée |
+| T-5.3 | `IdolRequest.turbo`, `idol generate --turbo` ⛔ G-5 | `plan/08-jalon5.md` | T-5.2 | validée |
 | T-6.1 | Outil de qualité : rendu de contrôle (PSNR/SSIM à la vue d'entrée + 7 vues) côté Python sur deux `.ply` | `plan/09-jalon6.md` | T-5.3 | à faire |
 | T-6.2 | Baseline mesurée `16bit-fast` (base et turbo), protocole `plan/00` | `plan/09-jalon6.md` | T-6.1 | à faire |
 | T-6.3 | Quantification par voie (débruiteur 8 bits, décodeurs 8 bits, DINOv3 8 bits ; 4 bits mesuré, attendu rejeté pour l'étape itérée, IT-7) ; couverture en octets (IT-5) | `plan/09-jalon6.md` | T-6.2 | à faire |

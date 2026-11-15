@@ -41,6 +41,8 @@ public final class IdolPipeline {
     public let denoiser: IdolDenoiser
     public let decoder: IdolDecoder
     public let remover: BackgroundRemover
+    /// The idol-turbo experts, when `turbo.safetensors` is present (`idol download --turbo`); `nil` otherwise.
+    public let turbo: TurboPhaseState?
 
     /// Loads every network (≈ 3.5 GB at the reference precision: fp16 blocks, bf16 encoders).
     public init(modelsDirectory: URL, remover: BackgroundRemover = VisionBackgroundRemover()) throws {
@@ -50,6 +52,14 @@ public final class IdolPipeline {
         denoiser = try IdolDenoiser.load(modelsDirectory: modelsDirectory, config: config)
         decoder = try IdolDecoder(modelsDirectory: modelsDirectory)
         self.remover = remover
+        let lora = IdolWeights.turboLoRA.localURL(in: modelsDirectory)
+        if FileManager.default.fileExists(atPath: lora.path) {
+            let state = try TurboLoRA.inject(into: denoiser, url: lora)
+            state.phase = nil  // base model until a turbo request
+            turbo = state
+        } else {
+            turbo = nil
+        }
     }
 
     /// The image the encoders see (`IdolPipeline.preprocess`).
@@ -69,10 +79,14 @@ public final class IdolPipeline {
     }
 
     public func generate<N: NoiseSource>(image: RGBAImage, request: IdolRequest = .init(), noise: inout N,
-                                         guidance: FlowSampler.Guidance = .sequential,
+                                         guidance: FlowSampler.Guidance = .sequential, useTurbo: Bool = false,
                                          isCancelled: () -> Bool = { false },
                                          progress: (IdolProgress) -> Void = { _ in }) throws -> IdolOutput {
         try request.validate()
+        if useTurbo && turbo == nil {
+            throw SperidError.missingFile("idol-turbo LoRA (run `idol download --turbo`)")
+        }
+        turbo?.phase = nil  // base unless the sampler selects an expert
         var timings: [String: Double] = [:]
         func timed<T>(_ name: String, _ body: () throws -> T) rethrows -> T {
             let start = Date()
@@ -92,11 +106,12 @@ public final class IdolPipeline {
         let sample = try timed("denoise") {
             try FlowSampler.sample(denoiser: denoiser, latentNoise: latentNoise, cameraNoise: cameraNoise,
                                    condition: condition, schedule: schedule, cfgStrength: request.cfgStrength,
-                                   guidance: guidance, isCancelled: isCancelled,
+                                   guidance: guidance, turbo: useTurbo ? turbo : nil, isCancelled: isCancelled,
                                    observe: { i, _, _ in progress(.init(stage: .denoising, fraction: Double(i + 1) / Double(schedule.steps))) })
         }
         if isCancelled() { throw CancellationError() }
         progress(.init(stage: .decoding, fraction: 0))
+        turbo?.phase = nil
         let cloud = timed("decode") { decoder.decode(latent: sample.latent, numGaussians: request.numGaussians, noise: &noise).cloud }
         let camera = CameraPose(latent: sample.camera.reshaped(-1).asArray(Float.self))
         progress(.init(stage: .done, fraction: 1))

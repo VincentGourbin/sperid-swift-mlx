@@ -34,7 +34,8 @@ public enum FlowSampler {
     /// checked before every step and throws `CancellationError`.
     public static func sample(denoiser: IdolDenoiser, latentNoise: MLXArray, cameraNoise: MLXArray,
                               condition: IdolCondition, schedule: FlowSchedule, cfgStrength: Double,
-                              guidance: Guidance = .sequential, isCancelled: () -> Bool = { false },
+                              guidance: Guidance = .sequential, turbo: TurboPhaseState? = nil,
+                              isCancelled: () -> Bool = { false },
                               observe: (_ step: Int, _ latent: MLXArray, _ camera: MLXArray) -> Void = { _, _, _ in })
         throws -> (latent: MLXArray, camera: MLXArray) {
         var x = latentNoise.asType(.float32)
@@ -44,6 +45,8 @@ public enum FlowSampler {
         for i in 0..<schedule.steps {
             if isCancelled() { throw CancellationError() }
             let (t, next) = schedule.interval(i)
+            // idol-turbo: the slow expert while t ≥ 0.5, the fast one below (`turbo.py`)
+            turbo?.phase = schedule.turboPhase(i)
             let netT = MLXArray([schedule.networkTime(i)])
             var vx: MLXArray, vc: MLXArray
             if w > 0, guidance == .batched {

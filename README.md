@@ -2,7 +2,7 @@
 
 Swift / MLX ports of the [speridlabs](https://huggingface.co/speridlabs) models for Apple Silicon, starting with **Idol**: one picture of an object in, up to a million 3D Gaussians out, written as a standard 3DGS `.ply`, with no Python at inference time.
 
-> **Status — Jalon 1 done (2026-11-15).** The second half of the pipeline runs in Swift: latent → octree anchors → Gaussians → `.ply` (`idol decode`). In fp32 the anchors are bit-identical to the Python reference and the Gaussian decoder agrees to 5e-6; in fp16 (the reference precision) Swift sits 5× closer to fp32 than PyTorch MPS does. The encoders and the denoiser come next ([plan](PLAN.md), [cards](tasks/INDEX.md)): an image does not become a splat yet.
+> **Status — 0.2 (2026-11-15): one image → 3D splat, entirely in Swift.** `idol generate --turbo` turns a picture into a 262 144-Gaussian `.ply` in about 25 s on an M3 Max (5 steps, idol-turbo), or ~10 min with the 50-step base model. Every stage is checked against the Python SDK: fp32 anchors bit-exact, DINOv3 1.8e-6, VAE 1.6e-5, 50-step latent 5.9e-3, turbo latent 2.5e-3. **Idol Studio** (`idol-studio`) is the Space on your Mac: same settings and examples, RealityKit 27 splat viewer. Background removal uses Apple Vision for now (BiRefNet port pending).
 
 | Documentation | |
 |---|---|
@@ -43,6 +43,9 @@ Scripts/check-tests.sh                  # weight-free tests
 .xcodebuild/Build/Products/Release/idol info              # pinned weights, local copies vs contracts
 .xcodebuild/Build/Products/Release/idol schedule --steps 5  # the turbo time grid
 Scripts/link-references.sh              # reference/: idol-sdk, transformers (DINOv3), sibling ports
+.xcodebuild/Build/Products/Release/idol download --turbo   # 3.2 GB; DINOv3 and FLUX.2-dev are gated (accept their terms, HF_TOKEN)
+.xcodebuild/Build/Products/Release/idol generate --turbo --image photo.webp --out outputs
+Scripts/check-build.sh idol-studio && .xcodebuild/Build/Products/Release/idol-studio   # the app
 ```
 
 ## Repository layout
