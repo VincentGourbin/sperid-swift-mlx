@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Printable STL** (`IdolResult.writeSTL`, `PrintPreparation`, `idol export --stl`, `idol generate --stl`, Idol Studio's Export menu). The splat becomes a solid on a voxel grid — every Gaussian at iso 0.01, largest piece, inside filled by a 6-ray vote, minimum thickness, flat base or convex-hull plinth, ambiguity repair — then surface nets, Taubin smoothing and quadric decimation. Watertight and manifold by construction and checked (`PrintReport`). Six objects (fox, foosball, backpack, robot, avocado, foosball on a plinth): all one shell, watertight, manifold, 1-5 s. No Blender, no new dependency.
+
 ## 0.3.3 — 2026-11-16
 
 - **Cancellation in `.quality` waits half a step instead of a whole one.** The guided step evaluates its conditional forward on its own and checks cancellation before the negative forward. Bit-identical: same PLY bytes for a 6-step guided generation, same 50-step parity against PyTorch (final latent relL2 0.0030875097, unchanged). Cost: one graph build (13.7 ms) per step; interleaved in one process, 12 steps each, median 11.96 s before vs 11.99 s after, within noise. The engine test bounds the latency by 0.6 × the measured step (5.1 s for a 10.1 s step).

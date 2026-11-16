@@ -26,6 +26,8 @@ struct GenerateCommand: ParsableCommand {
     @Option(help: "Models directory.") var modelsDir: String?
     @Flag(help: "Also write <name>.glb (mesh with vertex colours).") var glb = false
     @Flag(help: "Also write <name>.usdz (textured mesh, Quick Look / AR).") var usdz = false
+    @Flag(help: "Also write <name>.stl for a 3D printer (100 mm high, flat base; `idol export --stl` for the settings).")
+    var stl = false
     @Option(help: "Profile with swift-mlx-profiler (fineGrained): writes report.txt and trace.json into this folder.")
     var profile: String?
 
@@ -65,6 +67,9 @@ struct GenerateCommand: ParsableCommand {
             if glb { try GLBWriter.write(mesh, to: folder.appendingPathComponent("\(name).glb")) }
             if usdz { try USDZWriter.write(mesh, to: folder.appendingPathComponent("\(name).usdz")) }
             print("mesh: \(mesh.triangleCount) triangles → \([glb ? "glb" : nil, usdz ? "usdz" : nil].compactMap { $0 }.joined(separator: ", "))")
+        }
+        if stl {
+            try PrintArguments.defaults.write(output.cloud, to: URL(fileURLWithPath: out).appendingPathComponent("\(name).stl"))
         }
         if let session, let profile {
             session.finish()

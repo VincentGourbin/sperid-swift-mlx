@@ -38,32 +38,53 @@ public enum MeshExtraction {
     static let shC0: Float = 0.28209479177387814
 
     /// Splats each Gaussian's opacity (and colour) trilinearly at its centre and at ±1σ along its three
-    /// rotated axes (7 points: an elongated Gaussian covers its length — thin parts no longer break into
-    /// beads), blurs the grid (σ ≈ 1 cell),
-    /// extracts the iso-surface with surface nets, and colours / orients the vertices from the grids.
+    /// rotated axes, blurs the grid (σ ≈ 1 cell), extracts the iso-surface with surface nets, and colours /
+    /// orients the vertices from the grids.
     public static func extract(_ cloud: GaussianCloud, options: MeshExtractionOptions = .init()) -> SplatMesh {
-        let n = options.resolution
-        // bounds of the kept Gaussians, padded by two cells
+        guard let field = densityField(cloud, minimumOpacity: options.minimumOpacity, withColor: true,
+                                       cell: { $0.max() / Float(options.resolution - 4) }, padding: 2),
+              let iso = field.iso(fraction: options.isoFraction) else { return SplatMesh() }
+        return SurfaceNets.extract(density: field.density, color: field.color, grid: field.grid, iso: iso)
+    }
+
+    struct Field {
+        let grid: Grid
+        let density: [Float]
+        let color: [SIMD3<Float>]
+        /// `fraction` of the 99th percentile of the occupied cells' density.
+        func iso(fraction: Float) -> Float? {
+            let occupied = density.filter { $0 > 1e-4 }.sorted()
+            guard !occupied.isEmpty else { return nil }
+            return occupied[min(occupied.count - 1, Int(Double(occupied.count) * 0.99))] * fraction
+        }
+    }
+
+    /// The blurred opacity (and colour) grid. `cell` maps the kept Gaussians' extent to a cell size;
+    /// `padding` empty cells surround them (more on the high side, as the USDZ/GLB grid always had).
+    static func densityField(_ cloud: GaussianCloud, minimumOpacity: Float, withColor: Bool,
+                             cell cellFor: (SIMD3<Float>) -> Float, padding: Int) -> Field? {
         var lo = SIMD3<Float>(repeating: .greatestFiniteMagnitude), hi = -lo
-        for i in 0..<cloud.count where cloud.opacity[i] >= options.minimumOpacity {
+        for i in 0..<cloud.count where cloud.opacity[i] >= minimumOpacity {
             let p = SIMD3(cloud.xyz[3 * i], cloud.xyz[3 * i + 1], cloud.xyz[3 * i + 2])
             lo = simd_min(lo, p); hi = simd_max(hi, p)
         }
-        guard lo.x <= hi.x else { return SplatMesh() }
-        let cell = (hi - lo).max() / Float(n - 4)
-        lo -= 2 * cell
-        let dims = SIMD3<Int>(Int(((hi.x - lo.x) / cell).rounded(.up)) + 3, Int(((hi.y - lo.y) / cell).rounded(.up)) + 3,
-                              Int(((hi.z - lo.z) / cell).rounded(.up)) + 3)
+        guard lo.x <= hi.x else { return nil }
+        let cell = cellFor(hi - lo)
+        lo -= Float(padding) * cell
+        let pad = padding + 1
+        let dims = SIMD3<Int>(Int(((hi.x - lo.x) / cell).rounded(.up)) + pad, Int(((hi.y - lo.y) / cell).rounded(.up)) + pad,
+                              Int(((hi.z - lo.z) / cell).rounded(.up)) + pad)
         let grid = Grid(dims: dims, origin: lo, cell: cell)
         var density = [Float](repeating: 0, count: grid.count)
-        var color = [SIMD3<Float>](repeating: .zero, count: grid.count)
+        var color = [SIMD3<Float>](repeating: .zero, count: withColor ? grid.count : 0)
         for i in 0..<cloud.count {
             let o = cloud.opacity[i]
-            guard o >= options.minimumOpacity else { continue }
+            guard o >= minimumOpacity else { continue }
             let p = SIMD3(cloud.xyz[3 * i], cloud.xyz[3 * i + 1], cloud.xyz[3 * i + 2])
             let rgb = simd_clamp(0.5 + shC0 * SIMD3(cloud.featuresDC[3 * i], cloud.featuresDC[3 * i + 1], cloud.featuresDC[3 * i + 2]),
                                  SIMD3(repeating: 0), SIMD3(repeating: 1))
-            // rotation (w, x, y, z) → the three principal axes, scaled by the Gaussian's σ
+            // rotation (w, x, y, z) → the three principal axes, scaled by the Gaussian's σ: an elongated
+            // Gaussian covers its length (centre + ±1σ, 7 points), thin parts no longer break into beads
             let q = simd_quatf(ix: cloud.rotation[4 * i + 1], iy: cloud.rotation[4 * i + 2], iz: cloud.rotation[4 * i + 3],
                                r: cloud.rotation[4 * i])
             let s = SIMD3(cloud.scaling[3 * i], cloud.scaling[3 * i + 1], cloud.scaling[3 * i + 2])
@@ -71,16 +92,19 @@ public enum MeshExtraction {
             var points = [(p, Float(0.4))]
             for a in axes { points.append((p + a, 0.1)); points.append((p - a, 0.1)) }
             for (pt, share) in points {
-                grid.trilinear(pt) { idx, w in density[idx] += o * w * share; color[idx] += o * w * share * rgb }
+                if withColor {
+                    grid.trilinear(pt) { idx, w in density[idx] += o * w * share; color[idx] += o * w * share * rgb }
+                } else {
+                    grid.trilinear(pt) { idx, w in density[idx] += o * w * share }
+                }
             }
         }
         density = grid.blur(density)
-        color = grid.blur(color)
-        for i in 0..<grid.count where density[i] > 1e-6 { color[i] /= density[i] }
-        let occupied = density.filter { $0 > 1e-4 }.sorted()
-        guard !occupied.isEmpty else { return SplatMesh() }
-        let iso = occupied[min(occupied.count - 1, Int(Double(occupied.count) * 0.99))] * options.isoFraction
-        return SurfaceNets.extract(density: density, color: color, grid: grid, iso: iso)
+        if withColor {
+            color = grid.blur(color)
+            for i in 0..<grid.count where density[i] > 1e-6 { color[i] /= density[i] }
+        }
+        return Field(grid: grid, density: density, color: color)
     }
 }
 

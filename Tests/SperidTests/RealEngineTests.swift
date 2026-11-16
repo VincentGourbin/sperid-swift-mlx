@@ -30,6 +30,10 @@ struct RealEngineTests {
         try result.writeUSDZ(to: dir.appendingPathComponent("fox.usdz"))
         try result.writeGLB(to: dir.appendingPathComponent("fox.glb"))
         #expect(try PLYReader.read(dir.appendingPathComponent("fox.ply")).count == 262_144)
+        let print3D = try result.writeSTL(to: dir.appendingPathComponent("fox.stl"))
+        print("REALENGINE stl \(print3D)")
+        #expect(print3D.isPrintable)
+        #expect(abs(print3D.sizeMM.z - 100) < 0.01)
         print("REALENGINE timings \(result.timings.mapValues { String(format: "%.1f", $0) })")
     }
 

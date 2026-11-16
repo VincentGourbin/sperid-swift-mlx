@@ -3,6 +3,7 @@
 
 import CoreGraphics
 import Foundation
+import SperidCore
 
 /// Everything a generation produced. Plain values: safe to pass between tasks and actors.
 public struct IdolResult: Sendable {
@@ -28,6 +29,17 @@ public struct IdolResult: Sendable {
     public func writeUSDZ(to url: URL, options: MeshExtractionOptions = .init()) throws { try USDZWriter.write(mesh(options: options), to: url) }
     /// Mesh with vertex colours for Blender, three.js, Unity.
     public func writeGLB(to url: URL, options: MeshExtractionOptions = .init()) throws { try GLBWriter.write(mesh(options: options), to: url) }
+
+    /// A closed, solid, single-piece mesh in millimetres for a 3D printer (see `PrintOptions`), or nil when no
+    /// matter survives the clean-up. Check `report.isPrintable`.
+    public func printMesh(options: PrintOptions = .init()) -> PrintMesh? { PrintPreparation.prepare(cloud, options: options) }
+    /// Binary STL for a slicer (millimetres, z up, standing on the bed). Returns the checks made on it.
+    @discardableResult
+    public func writeSTL(to url: URL, options: PrintOptions = .init()) throws -> PrintReport {
+        guard let mesh = printMesh(options: options) else { throw SperidError.invalidRequest("no matter left to print") }
+        try STLWriter.write(mesh, to: url)
+        return mesh.report
+    }
 
     /// `<name>.ply`, `<name>_input.png`, `<name>_camera.json`, like `python -m idol.sample`.
     public func write(to folder: URL, name: String) throws {

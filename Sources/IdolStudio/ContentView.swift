@@ -106,6 +106,9 @@ struct ContentView: View {
                     Menu("Export") {
                         Button("USDZ (Quick Look, AR)…") { saveMesh("usdz") }
                         Button("GLB (Blender, web)…") { saveMesh("glb") }
+                        Divider()
+                        Button("STL for 3D printing (100 mm, flat base)…") { saveMesh("stl") }
+                        Button("STL for 3D printing (100 mm, on a plinth)…") { saveMesh("stl", print: PrintOptions(base: .plinth)) }
                     }
                     .fixedSize()
                 }
@@ -140,11 +143,11 @@ struct ContentView: View {
         }
     }
 
-    func saveMesh(_ ext: String) {
+    func saveMesh(_ ext: String, print options: PrintOptions = .init()) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [UTType(filenameExtension: ext) ?? .data]
         panel.nameFieldStringValue = "idol.\(ext)"
-        if panel.runModal() == .OK, let url = panel.url { model.exportMesh(to: url) }
+        if panel.runModal() == .OK, let url = panel.url { model.exportMesh(to: url, print: options) }
     }
 
     func chooseImage() {

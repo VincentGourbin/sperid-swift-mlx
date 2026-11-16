@@ -69,10 +69,37 @@ torch's: the same seed gives a different (equally valid) object than the Python 
 | `mesh(options:) -> SplatMesh` | coloured mesh, y-up, ≈ 1 m (density grid + surface nets; `MeshExtractionOptions.resolution`, `isoFraction`) |
 | `writeUSDZ(to:options:)` | textured mesh, `UsdPreviewSurface`, passes `usdchecker --arkit` |
 | `writeGLB(to:options:)` | mesh with vertex colours (`COLOR_0`) |
+| `printMesh(options:) -> PrintMesh?` | closed, solid, single-piece mesh in millimetres for a 3D printer, with its `PrintReport` |
+| `writeSTL(to:options:) -> PrintReport` | binary STL (mm, z up, standing on z = 0); throws when no matter is left |
 | `write(to:name:)` | `<name>.ply`, `<name>_input.png`, `<name>_camera.json`, like `python -m idol.sample` |
 
 Other entry points: `PLYReader.read(_:)` (any 3DGS PLY → `GaussianCloud`), `MeshExtraction.extract(_:options:)`,
-`GLBWriter`, `USDZWriter`.
+`PrintPreparation.prepare(_:options:)`, `GLBWriter`, `USDZWriter`, `STLWriter`.
+
+### 3D printing — `PrintOptions`, `PrintReport`
+
+```swift
+let report = try result.writeSTL(to: url, options: PrintOptions(heightMM: 120, minThicknessMM: 1.2, base: .plinth))
+guard report.isPrintable else { … }   // watertight, manifold, one shell, positive volume
+```
+
+The splat becomes a solid on a voxel grid, then a surface. Every step is there because a generated splat is not
+a printable object:
+
+| Step | Why |
+|---|---|
+| density of **every** Gaussian, iso 0.01 × p99 | parts of the surface (the top of the fox's head) are made of Gaussians below 0.05 opacity |
+| keep the largest piece | floaters (2 500 on the fox) would print as loose crumbs |
+| fill the inside by a 6-ray vote (5 of 6 meet matter) | the Gaussians sit on the surface: the density is a shell, open where the model saw nothing (often below) |
+| closing + growth of thin parts to `minThicknessMM` | ears, wires, sheets thinner than a nozzle |
+| `base`: `.flat` (cut 2 % of the height), `.plinth` (convex hull of the feet + `plinthMarginMM`), `.none` | something to stand on the bed |
+| ambiguity repair (no 2×2×2 block whose matter or void touches only along an edge or a corner) | the surface is then a 2-manifold by construction |
+| surface nets, Taubin smoothing, quadric decimation (link condition, no flip) to `maxTriangles` | no voxel staircase, a file a slicer opens quickly |
+
+`gridCells` (default 128 over the height) is tied to the object, not to millimetres: the density comes from the
+Gaussians and pits when finer. `PrintReport` gives the size in mm, the volume, the shells, the genus, the
+fragments removed and the two checks (each edge shared by two opposite triangles; a single fan per vertex). It
+takes 1-5 s on an M3 Max. Colour (3MF) is not written yet.
 
 ## `IdolUI` (macOS 27, iOS 27, visionOS 27)
 

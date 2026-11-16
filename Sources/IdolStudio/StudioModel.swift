@@ -94,13 +94,24 @@ final class StudioModel {
 
     func cancel() { task?.cancel() }
 
-    /// Extracts the mesh of the current splat and writes it as .glb or .usdz (chosen by the extension).
-    func exportMesh(to url: URL) {
+    /// Extracts the mesh of the current splat and writes it as .glb, .usdz or a printable .stl (by extension).
+    func exportMesh(to url: URL, print options: PrintOptions = .init()) {
         guard let cloud else { return }
         status = "Exporting \(url.lastPathComponent)…"
         let snapshot = cloud
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+                if url.pathExtension.lowercased() == "stl" {
+                    guard let mesh = PrintPreparation.prepare(snapshot, options: options) else {
+                        throw SperidError.invalidRequest("no matter left to print")
+                    }
+                    try STLWriter.write(mesh, to: url)
+                    let r = mesh.report
+                    let text = String(format: "Exported %@ — %.0f × %.0f × %.0f mm, %@", url.lastPathComponent,
+                                      r.sizeMM.x, r.sizeMM.y, r.sizeMM.z, r.isPrintable ? "printable" : "NOT printable: \(r)")
+                    Task { @MainActor in self.status = text }
+                    return
+                }
                 let mesh = MeshExtraction.extract(snapshot)
                 if url.pathExtension.lowercased() == "glb" { try GLBWriter.write(mesh, to: url) } else { try USDZWriter.write(mesh, to: url) }
                 Task { @MainActor in self.status = "Exported \(url.lastPathComponent) (\(mesh.triangleCount) triangles)" }

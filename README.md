@@ -1,6 +1,6 @@
 # sperid-swift-mlx
 
-Swift / MLX port of **[Idol](https://huggingface.co/speridlabs/idol)** by [Speri Labs](https://huggingface.co/speridlabs) for Apple Silicon: **one picture of an object in, a 3D Gaussian splat out** — entirely on the Mac, no Python at run time. Exports the standard 3DGS `.ply`, a textured **USDZ** (Quick Look, AR) and a **GLB** (Blender, web).
+Swift / MLX port of **[Idol](https://huggingface.co/speridlabs/idol)** by [Speri Labs](https://huggingface.co/speridlabs) for Apple Silicon: **one picture of an object in, a 3D Gaussian splat out** — entirely on the Mac, no Python at run time. Exports the standard 3DGS `.ply`, a textured **USDZ** (Quick Look, AR), a **GLB** (Blender, web) and a printable **STL** (one closed, solid piece in millimetres).
 
 > Independent community port, not affiliated with Speri Labs. The weights are theirs (and Meta's and Black Forest Labs' for the two encoders); they are downloaded under your own Hugging Face account and their licences apply — see [Licences](#licences).
 
@@ -55,6 +55,7 @@ let result = try await engine.generate(.url(photoURL), settings: IdolSettings(mo
 try result.writePLY(to: folder.appending(path: "object.ply"))     // 3DGS viewers, Blender 5.3
 try result.writeUSDZ(to: folder.appending(path: "object.usdz"))   // Quick Look / AR (passes usdchecker --arkit)
 try result.writeGLB(to: folder.appending(path: "object.glb"))     // Blender, three.js, Unity
+try result.writeSTL(to: folder.appending(path: "object.stl"))     // 3D printer: watertight, manifold, 100 mm high
 ```
 
 ```swift
