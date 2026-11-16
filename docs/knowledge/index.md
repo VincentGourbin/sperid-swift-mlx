@@ -20,7 +20,7 @@ Mesures reproductibles (état des horloges GPU, écart ±2 %).
 ## Pitfalls
 Numérotés comme `plan/11-pieges.md`.
 - [Plantage MLX entre threads dans l'app](pitfalls/mlx-cross-thread-app-crash.md) — poids paresseux chargés sur un thread, évalués sur un autre ; tout matérialiser au chargement, un seul thread MLX (`MLXWorker`).
-- [Un splat est une coquille](pitfalls/splat-is-a-shell-not-a-solid.md) — export STL : intérieur vide, crâne fait de Gaussiennes < 0,05 d'opacité, grille trop fine qui piquette ; vote de 6 rayons, toutes les Gaussiennes, 128 cellules.
+- [La surface d'un splat est sa transmittance](pitfalls/splat-is-a-shell-not-a-solid.md) — iso sur densité floutée = objets bouffis ; vote de rayons = bacs remplis ; solide = ce qu'on ne voit pas d'en haut ni de côté à T 0,5.
 - [PLY 3DGS y-bas](pitfalls/ply-y-down-convention.md) — `save_ply` écrit (x, −z, y) : le haut de l'objet sur −y ; RealityKit (y-haut) le tourne d'un demi-tour (n° 21).
 - [`Float.pi` arrondi vers zéro](pitfalls/swift-float-pi-rounded-toward-zero.md) — un ulp sous le π de torch, 2,4e-4 sur sin/cos à 3000 rad ; `Float(Double.pi)` ; l'`exp` de torch à ~1 ulp impose une tolérance trig de 3e-4 (n° 20).
 

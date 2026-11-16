@@ -31,9 +31,10 @@ struct VoxelSolid {
 
     // MARK: - Pieces
 
-    /// Keeps the largest face-connected piece of matter; returns how many smaller pieces were dropped.
+    /// Keeps the largest face-connected piece of matter, and the pieces at least `minFraction` of its size;
+    /// returns how many pieces were dropped.
     @discardableResult
-    mutating func keepLargestComponent() -> Int {
+    mutating func keepLargestComponent(minFraction: Double = 1) -> Int {
         var label = [Int32](repeating: 0, count: count)
         var sizes: [Int] = [0]
         var stack: [Int] = []
@@ -50,9 +51,10 @@ struct VoxelSolid {
             sizes.append(size)
         }
         guard sizes.count > 2 else { return 0 }
-        let best = Int32(sizes.indices.dropFirst().max { sizes[$0] < sizes[$1] }!)
-        for i in 0..<count where v[i] != 0 && label[i] != best { v[i] = 0 }
-        return sizes.count - 2
+        let largest = sizes.dropFirst().max()!
+        let keep = sizes.map { Double($0) >= minFraction * Double(largest) }
+        for i in 0..<count where v[i] != 0 && !keep[Int(label[i])] { v[i] = 0 }
+        return keep.dropFirst().filter { !$0 }.count
     }
 
     /// Fills every empty region the outside cannot reach (face-connected): the object becomes solid.
@@ -70,30 +72,6 @@ struct VoxelSolid {
             }
         }
         for i in 0..<count where outside[i] == 0 { v[i] = 1 }
-    }
-
-    /// The Gaussians sit on the object's surface, so the thresholded density is a shell, open where the model
-    /// saw nothing (often the underside) or where it is sparse: flooding from outside would empty it. A voxel is
-    /// inside when at least `votes` of the 6 axis rays from it meet matter. With 5, one open side (a bottom, a
-    /// bowl-like top) no longer empties the object, while the gap between two legs (open front, back and
-    /// below) stays empty.
-    mutating func fillInterior(votes: Int = 5) {
-        var hits = [UInt8](repeating: 0, count: count)
-        let (nx, ny, nz) = (self.nx, self.ny, self.nz)
-        // one line per (axis, line start): a forward and a backward scan, "matter seen so far"
-        func scan(_ len: Int, _ step: Int, _ base: Int) {
-            var seen = false
-            for k in 0..<len { let i = base + k * step; if v[i] != 0 { seen = true } else if seen { hits[i] += 1 } }
-            seen = false
-            for k in stride(from: len - 1, through: 0, by: -1) {
-                let i = base + k * step; if v[i] != 0 { seen = true } else if seen { hits[i] += 1 }
-            }
-        }
-        for z in 0..<nz { for y in 0..<ny { scan(nx, 1, (z * ny + y) * nx) } }
-        for z in 0..<nz { for x in 0..<nx { scan(ny, nx, z * nx * ny + x) } }
-        for y in 0..<ny { for x in 0..<nx { scan(nz, nx * ny, y * nx + x) } }
-        for i in 0..<count where v[i] == 0 && hits[i] >= votes { v[i] = 1 }
-        fillCavities()
     }
 
     /// Lowest and highest z holding matter.

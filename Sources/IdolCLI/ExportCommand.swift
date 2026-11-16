@@ -13,7 +13,6 @@ struct ExportCommand: ParsableCommand {
     @Option(help: "Output .glb (Blender, three.js, Unity…).") var glb: String?
     @Option(help: "Output .usdz (Quick Look, AR, Reality Composer).") var usdz: String?
     @Option(help: "Grid resolution (cells per axis).") var resolution = 192
-    @Option(help: "Iso-level, fraction of the 99th percentile of the density.") var iso: Float = 0.04
     @OptionGroup var print3D: PrintArguments
 
     func run() throws {
@@ -22,7 +21,7 @@ struct ExportCommand: ParsableCommand {
         let cloud = try PLYReader.read(URL(fileURLWithPath: ply))
         if let stl = print3D.stl { try print3D.write(cloud, to: URL(fileURLWithPath: stl)) }
         guard glb != nil || usdz != nil else { return }
-        let mesh = MeshExtraction.extract(cloud, options: .init(resolution: resolution, isoFraction: iso))
+        let mesh = MeshExtraction.extract(cloud, options: .init(resolution: resolution))
         print(String(format: "mesh: %d vertices, %d triangles (%.1f s)", mesh.positions.count, mesh.triangleCount, Date().timeIntervalSince(start)))
         if let glb { try GLBWriter.write(mesh, to: URL(fileURLWithPath: glb)); print("GLB → \(glb)") }
         if let usdz { try USDZWriter.write(mesh, to: URL(fileURLWithPath: usdz)); print("USDZ → \(usdz)") }
@@ -38,8 +37,8 @@ struct PrintArguments: ParsableArguments {
     @Option(help: "Base: flat (cut flat) | plinth (slab under the object) | none.") var base = "flat"
     @Option(help: "Maximum triangles (quadric decimation; 0: none).") var maxTriangles = 200_000
     @Option(help: "Clean-up grid cells over the object's height (finer pits the surface).") var cells: Int?
-    @Option(help: "Iso-level of the print solid, fraction of the 99th percentile of the density.") var printIso: Float?
     @Option(help: "Gaussians below this opacity are ignored for the print solid.") var printMinOpacity: Float?
+    @Option(help: "Taubin smoothing passes (removes the voxel steps).") var smoothing: Int?
 
     static var defaults: PrintArguments { try! PrintArguments.parse([]) }
 
@@ -54,8 +53,8 @@ struct PrintArguments: ParsableArguments {
             }
             var o = PrintOptions(heightMM: height, minThicknessMM: thickness, base: b, maxTriangles: maxTriangles)
             if let cells { o.gridCells = cells }
-            if let printIso { o.isoFraction = printIso }
             if let printMinOpacity { o.minimumOpacity = printMinOpacity }
+            if let smoothing { o.smoothingIterations = smoothing }
             return o
         }
     }

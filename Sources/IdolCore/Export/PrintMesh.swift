@@ -15,10 +15,9 @@ public struct PrintOptions: Sendable {
     }
     /// Height of the printed object (z, the bed's normal).
     public var heightMM: Float = 100
-    /// Cells of the clean-up grid over the object's height. Tied to the object, not to millimetres: the
-    /// density is sampled from the Gaussians, and finer than ~1/128 of the object it pits (fox, 2026-11-16:
-    /// 250 cells → a pockmarked surface, 125 → smooth). 128 cells on 100 mm ≈ 0.8 mm, below FDM detail.
-    public var gridCells = 128
+    /// Cells of the clean-up grid over the object's height (192 on 100 mm ≈ 0.5 mm). Every Gaussian is an
+    /// exact kernel, widened to 0.6 cell when thinner, so a finer grid sharpens without pitting.
+    public var gridCells = 192
     /// Every part ends up at least this thick (wires, sheets, ears); cracks narrower than it close.
     public var minThicknessMM: Float = 1.2
     public var base: Base = .flat
@@ -27,12 +26,11 @@ public struct PrintOptions: Sendable {
     public var plinthMarginMM: Float = 3
     /// Quadric decimation down to this many triangles (0: none).
     public var maxTriangles = 200_000
-    /// Taubin smoothing passes (voxel ripple).
-    public var smoothingIterations = 10
-    /// Density iso-level (fraction of the 99th percentile) and opacity floor. Lower than the USDZ / GLB mesh
-    /// (0.04 / 0.05): a solid needs every Gaussian — on the fox the top of the head is made of Gaussians
-    /// below 0.05 opacity and its density stays under 0.04 × p99, which left the skull open.
-    public var isoFraction: Float = 0.01
+    /// Taubin smoothing passes: 60 removes the one-cell voxel steps without shrinking the object
+    /// (foosball, 2026-11-16: volume 512.9 → 511.9 cm³, steps gone; 10 left them).
+    public var smoothingIterations = 60
+    /// Gaussians below this opacity are ignored. 0: a solid needs every Gaussian — the top of the fox's head is
+    /// made of Gaussians below 0.05 opacity, which only add up to an opaque surface along a ray.
     public var minimumOpacity: Float = 0
 
     public init(heightMM: Float = 100, minThicknessMM: Float = 1.2, base: Base = .flat, maxTriangles: Int = 200_000) {
@@ -76,7 +74,8 @@ public struct PrintMesh: Sendable {
 }
 
 public enum PrintPreparation {
-    /// Density grid → solid (largest piece, cavities filled, minimum thickness, base, ambiguity-free) →
+    /// Extinction grid → solid (what is not seen from above or the sides; largest piece, minimum thickness, base,
+    /// ambiguity-free) →
     /// surface nets → Taubin smoothing → quadric decimation → millimetres, checked.
     public static func prepare(_ cloud: GaussianCloud, options: PrintOptions = .init()) -> PrintMesh? {
         let opt = options
@@ -94,15 +93,15 @@ public enum PrintPreparation {
         for attempt in 0..<2 {
             let targetCells = Float(opt.gridCells)
             let padding = Int(((rMM + plinthMM) / (opt.heightMM / targetCells)).rounded(.up)) + 4
-            guard let field = MeshExtraction.densityField(cloud, minimumOpacity: opt.minimumOpacity, withColor: false,
-                                                          cell: { $0.z / targetCells * cellScale }, padding: padding),
-                  let iso = field.iso(fraction: opt.isoFraction) else { return nil }
-            let g = field.grid
-            lap("field \(g.dims)")
-            var solid = VoxelSolid(nx: g.dims.x, ny: g.dims.y, nz: g.dims.z, v: field.density.map { $0 > iso ? 1 : 0 })
+            guard let g = OpacityField.grid(around: cloud, minimumOpacity: opt.minimumOpacity,
+                                            cell: { $0.z / targetCells * cellScale }, padding: padding) else { return nil }
+            let kappa = OpacityField.extinction(cloud, grid: g, minimumOpacity: opt.minimumOpacity)
+            lap("extinction \(g.dims)")
+            var solid = OpacityField.solid(kappa: kappa, grid: g)
+            lap("solid (seen from above and the sides)")
             let fragments = solid.keepLargestComponent()
             guard let zr = solid.zRange else { return nil }
-            solid.fillInterior()
+            solid.fillCavities()
             lap("pieces + cavities")
             let mmPerCell = opt.heightMM / Float(zr.count)
             built = (solid, g, fragments, mmPerCell)

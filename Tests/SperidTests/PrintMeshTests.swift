@@ -78,19 +78,38 @@ struct PrintMeshTests {
         #expect(abs(k.volume - before) / before < 0.02)
     }
 
-    /// A shell open at the bottom (the side the model never sees) must come out solid, and the gap between
-    /// two legs must stay empty.
-    @Test func interiorOfAnOpenShellIsFilled() {
-        var s = solid(48) { p in
-            let d = simd_length(p - self.c)
-            return d <= 15 && d >= 13 && p.z > 14      // hollow ball, no bottom cap
+    /// Extinction of an opaque shape (κ · cell = 3 inside: a cell absorbs 95 %).
+    private func kappa(_ n: Int, _ inside: (SIMD3<Double>) -> Bool) -> (grid: Grid, kappa: [Float]) {
+        let grid = Grid(dims: SIMD3(n, n, n), origin: .zero, cell: 1)
+        var k = [Float](repeating: 0, count: grid.count)
+        for z in 0..<n { for y in 0..<n { for x in 0..<n where inside(SIMD3(Double(x), Double(y), Double(z))) {
+            k[grid.index(x, y, z)] = 3
+        } } }
+        return (grid, k)
+    }
+
+    /// A shell open at the bottom (the side the model never sees) comes out solid: only rays from above and the
+    /// sides empty space.
+    @Test func shellOpenBelowIsSolid() {
+        let f = kappa(48) { p in let d = simd_length(p - self.c); return d <= 15 && d >= 13 && p.z > 20 }
+        let s = OpacityField.solid(kappa: f.kappa, grid: f.grid)
+        #expect(s[24, 24, 24])                       // centre
+        #expect(s[24, 24, 22])                       // just above the opening
+        #expect(!s[24, 24, 41])                      // above the top
+    }
+
+    /// An open-top box (a foosball's pitch, a cup) stays hollow; the gap between two legs stays empty.
+    @Test func openTopAndGapsStayEmpty() {
+        let box = kappa(40) { p in
+            let inBox = p.x >= 8 && p.x <= 32 && p.y >= 8 && p.y <= 32 && p.z >= 8 && p.z <= 24
+            let cavity = p.x > 10 && p.x < 30 && p.y > 10 && p.y < 30 && p.z > 10
+            return inBox && !cavity
         }
-        s.fillInterior()
-        #expect(s[24, 24, 24])                       // centre filled
-        #expect(s[24, 24, 16])                       // close to the open side, still inside
-        var legs = solid(32) { p in (p.z < 20 && (abs(p.x - 10) < 2 || abs(p.x - 22) < 2) && abs(p.y - 16) < 2) || (p.z >= 20 && p.z < 24 && p.x > 8 && p.x < 24 && abs(p.y - 16) < 2) }
-        legs.fillInterior()
-        #expect(!legs[16, 16, 10])                   // between the legs: open front, back and below
+        let s = OpacityField.solid(kappa: box.kappa, grid: box.grid)
+        #expect(s[20, 20, 9])                        // the floor
+        #expect(!s[20, 20, 18])                      // inside the box: seen from above
+        let legs = kappa(32) { p in (p.z < 20 && (abs(p.x - 10) < 2 || abs(p.x - 22) < 2) && abs(p.y - 16) < 2) || (p.z >= 20 && p.z < 24 && p.x > 8 && p.x < 24 && abs(p.y - 16) < 2) }
+        #expect(!OpacityField.solid(kappa: legs.kappa, grid: legs.grid)[16, 16, 10])
     }
 
     @Test func thinPartsGetTheMinimumThickness() {

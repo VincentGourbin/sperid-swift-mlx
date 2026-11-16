@@ -12,34 +12,32 @@ struct TriangleMesh {
     // MARK: - Extraction
 
     /// Surface nets on a well-composed solid: the topology comes from the voxels (closed 2-manifold), the vertex
-    /// positions from `smooth` (the solid blurred, crossing 0.5) so the surface is not a staircase.
-    static func extract(_ solid: VoxelSolid, smooth: [Float]) -> TriangleMesh {
+    /// positions from `smooth` (the solid blurred, crossing 0.5); Taubin smoothing then removes the voxel steps.
+    /// Positions in grid cells; quads counter-clockwise seen from outside.
+    static func surfaceQuads(_ solid: VoxelSolid, smooth: [Float])
+        -> (positions: [SIMD3<Double>], quads: [SIMD4<Int32>]) {
         let (nx, ny, nz) = (solid.nx, solid.ny, solid.nz)
         func inside(_ x: Int, _ y: Int, _ z: Int) -> Bool { solid.v[solid.index(x, y, z)] != 0 }
-        func s(_ x: Int, _ y: Int, _ z: Int) -> Float { smooth[solid.index(x, y, z)] }
         var vertexOf = [Int32](repeating: -1, count: (nx - 1) * (ny - 1) * (nz - 1))
         func cell(_ x: Int, _ y: Int, _ z: Int) -> Int { (z * (ny - 1) + y) * (nx - 1) + x }
-        var mesh = TriangleMesh()
+        var positions: [SIMD3<Double>] = []
+        var quads: [SIMD4<Int32>] = []
         for z in 0..<(nz - 1) { for y in 0..<(ny - 1) { for x in 0..<(nx - 1) {
             var mask = 0
-            var val = [Float](repeating: 0, count: 8)
-            for c in 0..<8 {
-                let (cx, cy, cz) = (x + (c & 1), y + ((c >> 1) & 1), z + ((c >> 2) & 1))
-                if inside(cx, cy, cz) { mask |= 1 << c }
-                val[c] = s(cx, cy, cz)
-            }
+            for c in 0..<8 where inside(x + (c & 1), y + ((c >> 1) & 1), z + ((c >> 2) & 1)) { mask |= 1 << c }
             guard mask != 0 && mask != 255 else { continue }
+            var val = [Float](repeating: 0, count: 8)
+            for c in 0..<8 { val[c] = smooth[solid.index(x + (c & 1), y + ((c >> 1) & 1), z + ((c >> 2) & 1))] }
             var sum = SIMD3<Double>.zero, crossings = 0.0
             for (a, b) in SurfaceNets.cubeEdges where (mask >> a) & 1 != (mask >> b) & 1 {
-                let (va, vb) = (val[a], val[b])
                 var t: Float = 0.5
-                if (va - 0.5) * (vb - 0.5) < 0 { t = min(0.9, max(0.1, (0.5 - va) / (vb - va))) }
+                if (val[a] - 0.5) * (val[b] - 0.5) < 0 { t = min(0.9, max(0.1, (0.5 - val[a]) / (val[b] - val[a]))) }
                 let ca = SIMD3<Double>(SurfaceNets.corner(a)), cb = SIMD3<Double>(SurfaceNets.corner(b))
                 sum += ca + (cb - ca) * Double(t)
                 crossings += 1
             }
-            vertexOf[cell(x, y, z)] = Int32(mesh.positions.count)
-            mesh.positions.append(SIMD3(Double(x), Double(y), Double(z)) + sum / crossings)
+            vertexOf[cell(x, y, z)] = Int32(positions.count)
+            positions.append(SIMD3(Double(x), Double(y), Double(z)) + sum / crossings)
         } } }
         for z in 1..<(nz - 1) { for y in 1..<(ny - 1) { for x in 1..<(nx - 1) {
             let isIn = inside(x, y, z)
@@ -55,16 +53,26 @@ struct TriangleMesh {
                 var q = cells.map { vertexOf[cell($0.0, $0.1, $0.2)] }
                 guard q.allSatisfy({ $0 >= 0 }) else { continue }
                 if !isIn { q.reverse() }
-                // split along the shorter diagonal
-                let d02 = simd_length_squared(mesh.positions[Int(q[0])] - mesh.positions[Int(q[2])])
-                let d13 = simd_length_squared(mesh.positions[Int(q[1])] - mesh.positions[Int(q[3])])
-                if d02 <= d13 {
-                    mesh.triangles.append(SIMD3(q[0], q[1], q[2])); mesh.triangles.append(SIMD3(q[0], q[2], q[3]))
-                } else {
-                    mesh.triangles.append(SIMD3(q[0], q[1], q[3])); mesh.triangles.append(SIMD3(q[1], q[2], q[3]))
-                }
+                quads.append(SIMD4(q[0], q[1], q[2], q[3]))
             }
         } } }
+        return (positions, quads)
+    }
+
+    static func extract(_ solid: VoxelSolid, smooth: [Float]) -> TriangleMesh {
+        let (positions, quads) = surfaceQuads(solid, smooth: smooth)
+        var mesh = TriangleMesh(positions: positions)
+        mesh.triangles.reserveCapacity(2 * quads.count)
+        for q in quads {
+            // split along the shorter diagonal
+            let d02 = simd_length_squared(positions[Int(q[0])] - positions[Int(q[2])])
+            let d13 = simd_length_squared(positions[Int(q[1])] - positions[Int(q[3])])
+            if d02 <= d13 {
+                mesh.triangles.append(SIMD3(q[0], q[1], q[2])); mesh.triangles.append(SIMD3(q[0], q[2], q[3]))
+            } else {
+                mesh.triangles.append(SIMD3(q[0], q[1], q[3])); mesh.triangles.append(SIMD3(q[1], q[2], q[3]))
+            }
+        }
         return mesh
     }
 
@@ -72,22 +80,33 @@ struct TriangleMesh {
 
     /// Taubin λ|μ smoothing (uniform weights): removes the voxel ripple without shrinking the object.
     mutating func taubin(iterations: Int, lambda: Double = 0.5, mu: Double = -0.53) {
+        Self.taubin(&positions, edges: triangles.flatMap { [($0.x, $0.y), ($0.y, $0.z), ($0.z, $0.x)] },
+                    iterations: iterations, lambda: lambda, mu: mu)
+    }
+
+    static func taubin(_ positions: inout [SIMD3<Double>], edges: [(Int32, Int32)], iterations: Int,
+                       lambda: Double = 0.5, mu: Double = -0.53) {
         guard iterations > 0 else { return }
         var neighbours = [[Int32]](repeating: [], count: positions.count)
-        for t in triangles {
-            for (a, b) in [(t.x, t.y), (t.y, t.z), (t.z, t.x)] {
-                if !neighbours[Int(a)].contains(b) { neighbours[Int(a)].append(b) }
-                if !neighbours[Int(b)].contains(a) { neighbours[Int(b)].append(a) }
-            }
+        for (a, b) in edges {
+            if !neighbours[Int(a)].contains(b) { neighbours[Int(a)].append(b) }
+            if !neighbours[Int(b)].contains(a) { neighbours[Int(b)].append(a) }
         }
         var next = positions
         for _ in 0..<iterations {
             for factor in [lambda, mu] {
-                for i in positions.indices where !neighbours[i].isEmpty {
-                    var mean = SIMD3<Double>.zero
-                    for j in neighbours[i] { mean += positions[Int(j)] }
-                    mean /= Double(neighbours[i].count)
-                    next[i] = positions[i] + factor * (mean - positions[i])
+                positions.withUnsafeBufferPointer { cur in
+                    next.withUnsafeMutableBufferPointer { out in
+                        DispatchQueue.concurrentPerform(iterations: 64) { chunk in
+                            let n = cur.count, a = chunk * n / 64, e = (chunk + 1) * n / 64
+                            for i in a..<e where !neighbours[i].isEmpty {
+                                var mean = SIMD3<Double>.zero
+                                for j in neighbours[i] { mean += cur[Int(j)] }
+                                mean /= Double(neighbours[i].count)
+                                out[i] = cur[i] + factor * (mean - cur[i])
+                            }
+                        }
+                    }
                 }
                 swap(&positions, &next)
             }

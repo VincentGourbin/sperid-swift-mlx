@@ -66,7 +66,7 @@ torch's: the same seed gives a different (equally valid) object than the Python 
 | `camera: CameraPose` | yaw, pitch (radians), radius, fov (degrees) of the input view |
 | `seed`, `settings`, `timings` | what ran, seconds per stage |
 | `plyData()`, `writePLY(to:)` | standard 3DGS binary PLY (y-down, the COLMAP convention every 3DGS viewer reads) |
-| `mesh(options:) -> SplatMesh` | coloured mesh, y-up, ≈ 1 m (density grid + surface nets; `MeshExtractionOptions.resolution`, `isoFraction`) |
+| `mesh(options:) -> SplatMesh` | coloured mesh, y-up, ≈ 1 m: the surface a render shows (`MeshExtractionOptions.resolution`, `smoothingIterations`) |
 | `writeUSDZ(to:options:)` | textured mesh, `UsdPreviewSurface`, passes `usdchecker --arkit` |
 | `writeGLB(to:options:)` | mesh with vertex colours (`COLOR_0`) |
 | `printMesh(options:) -> PrintMesh?` | closed, solid, single-piece mesh in millimetres for a 3D printer, with its `PrintReport` |
@@ -83,23 +83,24 @@ let report = try result.writeSTL(to: url, options: PrintOptions(heightMM: 120, m
 guard report.isPrintable else { … }   // watertight, manifold, one shell, positive volume
 ```
 
-The splat becomes a solid on a voxel grid, then a surface. Every step is there because a generated splat is not
-a printable object:
+The splat becomes a solid on a voxel grid, then a surface:
 
 | Step | Why |
 |---|---|
-| density of **every** Gaussian, iso 0.01 × p99 | parts of the surface (the top of the fox's head) are made of Gaussians below 0.05 opacity |
-| keep the largest piece | floaters (2 500 on the fox) would print as loose crumbs |
-| fill the inside by a 6-ray vote (5 of 6 meet matter) | the Gaussians sit on the surface: the density is a shell, open where the model saw nothing (often below) |
-| closing + growth of thin parts to `minThicknessMM` | ears, wires, sheets thinner than a nozzle |
+| every Gaussian as an exact extinction kernel (3σ ellipsoid; a ray through a face-on Gaussian loses its α, as in a 3DGS render) | a blurred, point-sampled density put the surface in the Gaussians' tails: every object came out puffy |
+| solid = what a viewer **above or level** cannot see (transmittance 0.5, 17 directions) | the surface sits where a render shows it; the underside, never seen by the model and often open, does not empty the inside; open tops (a foosball's pitch, a cup) stay open |
+| keep the largest piece | floaters would print as loose crumbs |
+| closing + growth of thin parts to `minThicknessMM` | ears, rods, sheets thinner than a nozzle |
 | `base`: `.flat` (cut 2 % of the height), `.plinth` (convex hull of the feet + `plinthMarginMM`), `.none` | something to stand on the bed |
 | ambiguity repair (no 2×2×2 block whose matter or void touches only along an edge or a corner) | the surface is then a 2-manifold by construction |
-| surface nets, Taubin smoothing, quadric decimation (link condition, no flip) to `maxTriangles` | no voxel staircase, a file a slicer opens quickly |
+| surface nets, 60 Taubin passes, quadric decimation (link condition, no flip) to `maxTriangles` | no voxel steps, no shrinkage, a file a slicer opens quickly |
 
-`gridCells` (default 128 over the height) is tied to the object, not to millimetres: the density comes from the
-Gaussians and pits when finer. `PrintReport` gives the size in mm, the volume, the shells, the genus, the
+`gridCells` (default 192 over the height) sets the finest detail. `PrintReport` gives the size in mm, the volume, the shells, the genus, the
 fragments removed and the two checks (each edge shared by two opposite triangles; a single fan per vertex). It
-takes 1-5 s on an M3 Max. Colour (3MF) is not written yet.
+takes 3-8 s on an M3 Max. Colour (3MF) is not written yet.
+
+The USDZ / GLB mesh (`MeshExtraction`) uses the same field and solid (no thickness, no base), keeps pieces
+above 1 % of the largest, and colours the vertices from the Gaussians that make the surface.
 
 ## `IdolUI` (macOS 27, iOS 27, visionOS 27)
 

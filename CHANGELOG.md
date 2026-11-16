@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- **Printable STL** (`IdolResult.writeSTL`, `PrintPreparation`, `idol export --stl`, `idol generate --stl`, Idol Studio's Export menu). The splat becomes a solid on a voxel grid — every Gaussian at iso 0.01, largest piece, inside filled by a 6-ray vote, minimum thickness, flat base or convex-hull plinth, ambiguity repair — then surface nets, Taubin smoothing and quadric decimation. Watertight and manifold by construction and checked (`PrintReport`). Six objects (fox, foosball, backpack, robot, avocado, foosball on a plinth): all one shell, watertight, manifold, 1-5 s. No Blender, no new dependency.
+- **Sharper meshes (USDZ, GLB) — not puffy any more.** The mesh was the iso-surface of a point-sampled, blurred density at 4 % of its peak: it sat in the Gaussians' tails, 2-3 cells outside the object. Now every Gaussian is an exact extinction kernel and the surface is where a ray loses half its light, as in a render; the solid is what a viewer above or level with the object cannot see, so open tops stay open (the foosball's rods and players are back) and the never-seen underside does not empty the inside. 60 Taubin passes remove the voxel steps. The USDZ also halves in size (29 → 13 MB on the foosball). `MeshExtractionOptions.isoFraction` is ignored (deprecated); `minimumOpacity` defaults to 0.
+- **Printable STL** (`IdolResult.writeSTL`, `PrintPreparation`, `idol export --stl`, `idol generate --stl`, Idol Studio's Export menu): the same solid, then minimum thickness, flat base or convex-hull plinth, ambiguity repair, surface nets, smoothing, quadric decimation. Watertight and manifold by construction and checked (`PrintReport`). Fox, foosball, avocado, backpack: one shell each, watertight, manifold, 3-8 s. No Blender, no new dependency.
 
 ## 0.3.3 — 2026-11-16
 

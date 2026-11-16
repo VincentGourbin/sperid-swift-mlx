@@ -19,92 +19,77 @@ public struct SplatMesh: Sendable {
 }
 
 public struct MeshExtractionOptions: Sendable {
-    /// Grid cells per axis over the object's bounding box.
+    /// Grid cells along the object's longest side.
     public var resolution = 192
-    /// Iso-level as a fraction of the 99th percentile of the occupied cells' density.
-    /// 0.04: thin dark parts (the foosball's legs) stay closed; 0.02 lets inner Gaussians streak the
-    /// surface, 0.08-0.12 opened holes (compared on renders, 2026-11-15).
-    public var isoFraction: Float = 0.04
-    /// Gaussians below this opacity are ignored (floaters).
-    public var minimumOpacity: Float = 0.05
-    public init(resolution: Int = 192, isoFraction: Float = 0.04, minimumOpacity: Float = 0.05) {
+    /// Unused since 0.4: the surface is where a ray loses half its light (`OpacityField`), not an iso-level of a
+    /// blurred density — that one sat in the Gaussians' tails and made every object puffy.
+    @available(*, deprecated, message: "the surface is the transmittance-0.5 surface; this value is ignored")
+    public var isoFraction: Float {
+        get { 0 }
+        set { }
+    }
+    /// Gaussians below this opacity are ignored. 0: thin parts (the top of the fox's head) are made of Gaussians
+    /// below 0.05 that only add up to an opaque surface along a ray.
+    public var minimumOpacity: Float = 0
+    /// Taubin passes that remove the one-cell voxel steps.
+    public var smoothingIterations = 60
+    /// Pieces smaller than this fraction of the largest are dropped (floaters).
+    public var minimumPieceFraction = 0.01
+
+    public init(resolution: Int = 192, minimumOpacity: Float = 0, smoothingIterations: Int = 60) {
         self.resolution = resolution
-        self.isoFraction = isoFraction
         self.minimumOpacity = minimumOpacity
+        self.smoothingIterations = smoothingIterations
+    }
+
+    @available(*, deprecated, message: "isoFraction is ignored since 0.4")
+    public init(resolution: Int = 192, isoFraction: Float, minimumOpacity: Float = 0) {
+        self.init(resolution: resolution, minimumOpacity: minimumOpacity)
     }
 }
 
 public enum MeshExtraction {
     static let shC0: Float = 0.28209479177387814
 
-    /// Splats each Gaussian's opacity (and colour) trilinearly at its centre and at ±1σ along its three
-    /// rotated axes, blurs the grid (σ ≈ 1 cell), extracts the iso-surface with surface nets, and colours /
-    /// orients the vertices from the grids.
+    /// Every Gaussian as an exact extinction kernel; the surface a renderer shows (transmittance 0.5, seen from
+    /// above and from the sides), floaters dropped; surface nets, Taubin smoothing; colours from the
+    /// Gaussians that make the surface; y-up, about 1 m.
     public static func extract(_ cloud: GaussianCloud, options: MeshExtractionOptions = .init()) -> SplatMesh {
-        guard let field = densityField(cloud, minimumOpacity: options.minimumOpacity, withColor: true,
-                                       cell: { $0.max() / Float(options.resolution - 4) }, padding: 2),
-              let iso = field.iso(fraction: options.isoFraction) else { return SplatMesh() }
-        return SurfaceNets.extract(density: field.density, color: field.color, grid: field.grid, iso: iso)
-    }
-
-    struct Field {
-        let grid: Grid
-        let density: [Float]
-        let color: [SIMD3<Float>]
-        /// `fraction` of the 99th percentile of the occupied cells' density.
-        func iso(fraction: Float) -> Float? {
-            let occupied = density.filter { $0 > 1e-4 }.sorted()
-            guard !occupied.isEmpty else { return nil }
-            return occupied[min(occupied.count - 1, Int(Double(occupied.count) * 0.99))] * fraction
+        let n = max(16, options.resolution)
+        guard let grid = OpacityField.grid(around: cloud, minimumOpacity: options.minimumOpacity,
+                                           cell: { $0.max() / Float(n - 8) }, padding: 4) else { return SplatMesh() }
+        let field = OpacityField.extinction(cloud, grid: grid, minimumOpacity: options.minimumOpacity, withColor: true)
+        var solid = OpacityField.solid(kappa: field.kappa, grid: grid)
+        solid.keepLargestComponent(minFraction: options.minimumPieceFraction)
+        for _ in 0..<4 {
+            solid.fillCavities()
+            if solid.makeWellComposed() == 0 { break }
         }
-    }
-
-    /// The blurred opacity (and colour) grid. `cell` maps the kept Gaussians' extent to a cell size;
-    /// `padding` empty cells surround them (more on the high side, as the USDZ/GLB grid always had).
-    static func densityField(_ cloud: GaussianCloud, minimumOpacity: Float, withColor: Bool,
-                             cell cellFor: (SIMD3<Float>) -> Float, padding: Int) -> Field? {
-        var lo = SIMD3<Float>(repeating: .greatestFiniteMagnitude), hi = -lo
-        for i in 0..<cloud.count where cloud.opacity[i] >= minimumOpacity {
-            let p = SIMD3(cloud.xyz[3 * i], cloud.xyz[3 * i + 1], cloud.xyz[3 * i + 2])
-            lo = simd_min(lo, p); hi = simd_max(hi, p)
+        var (positions, quads) = TriangleMesh.surfaceQuads(solid, smooth: grid.blur(solid.v.map { Float($0) }))
+        guard !quads.isEmpty else { return SplatMesh() }
+        TriangleMesh.taubin(&positions, edges: quads.flatMap { [($0.x, $0.y), ($0.y, $0.z), ($0.z, $0.w), ($0.w, $0.x)] },
+                            iterations: options.smoothingIterations)
+        // colours: κ-weighted, spread a little so vertices just outside the opaque layer still find them
+        let colorSum = grid.blur(grid.blur(field.color)), weight = grid.blur(grid.blur(field.kappa))
+        var normals = [SIMD3<Float>](repeating: .zero, count: positions.count)
+        for q in quads {
+            let p = [q.x, q.y, q.z, q.w].map { positions[Int($0)] }
+            let nrm = SIMD3<Float>(simd_cross(p[2] - p[0], p[3] - p[1]))
+            for v in [q.x, q.y, q.z, q.w] { normals[Int(v)] += nrm }
         }
-        guard lo.x <= hi.x else { return nil }
-        let cell = cellFor(hi - lo)
-        lo -= Float(padding) * cell
-        let pad = padding + 1
-        let dims = SIMD3<Int>(Int(((hi.x - lo.x) / cell).rounded(.up)) + pad, Int(((hi.y - lo.y) / cell).rounded(.up)) + pad,
-                              Int(((hi.z - lo.z) / cell).rounded(.up)) + pad)
-        let grid = Grid(dims: dims, origin: lo, cell: cell)
-        var density = [Float](repeating: 0, count: grid.count)
-        var color = [SIMD3<Float>](repeating: .zero, count: withColor ? grid.count : 0)
-        for i in 0..<cloud.count {
-            let o = cloud.opacity[i]
-            guard o >= minimumOpacity else { continue }
-            let p = SIMD3(cloud.xyz[3 * i], cloud.xyz[3 * i + 1], cloud.xyz[3 * i + 2])
-            let rgb = simd_clamp(0.5 + shC0 * SIMD3(cloud.featuresDC[3 * i], cloud.featuresDC[3 * i + 1], cloud.featuresDC[3 * i + 2]),
-                                 SIMD3(repeating: 0), SIMD3(repeating: 1))
-            // rotation (w, x, y, z) → the three principal axes, scaled by the Gaussian's σ: an elongated
-            // Gaussian covers its length (centre + ±1σ, 7 points), thin parts no longer break into beads
-            let q = simd_quatf(ix: cloud.rotation[4 * i + 1], iy: cloud.rotation[4 * i + 2], iz: cloud.rotation[4 * i + 3],
-                               r: cloud.rotation[4 * i])
-            let s = SIMD3(cloud.scaling[3 * i], cloud.scaling[3 * i + 1], cloud.scaling[3 * i + 2])
-            let axes = [q.act(SIMD3(s.x, 0, 0)), q.act(SIMD3(0, s.y, 0)), q.act(SIMD3(0, 0, s.z))]
-            var points = [(p, Float(0.4))]
-            for a in axes { points.append((p + a, 0.1)); points.append((p - a, 0.1)) }
-            for (pt, share) in points {
-                if withColor {
-                    grid.trilinear(pt) { idx, w in density[idx] += o * w * share; color[idx] += o * w * share * rgb }
-                } else {
-                    grid.trilinear(pt) { idx, w in density[idx] += o * w * share }
-                }
-            }
+        var mesh = SplatMesh()
+        mesh.quads = quads.map { SIMD4<UInt32>(truncatingIfNeeded: $0) }
+        mesh.positions.reserveCapacity(positions.count)
+        for (i, p) in positions.enumerated() {
+            let g = SIMD3<Float>(p)
+            mesh.positions.append(SplatMesh.yUp(grid.position(g)))
+            let len = simd_length(normals[i])
+            mesh.normals.append(SplatMesh.yUp(len > 0 ? normals[i] / len : SIMD3(0, 0, 1)))
+            let w = SurfaceNets.sample(weight, grid, g)
+            mesh.colors.append(w > 1e-6 ? simd_clamp(SurfaceNets.sample(colorSum, grid, g) / w, .zero, SIMD3(repeating: 1))
+                                        : SIMD3(repeating: 0.5))
         }
-        density = grid.blur(density)
-        if withColor {
-            color = grid.blur(color)
-            for i in 0..<grid.count where density[i] > 1e-6 { color[i] /= density[i] }
-        }
-        return Field(grid: grid, density: density, color: color)
+        return mesh
     }
 }
 

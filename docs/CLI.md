@@ -13,9 +13,9 @@ Build with `Scripts/check-build.sh`; the binary is `.xcodebuild/Build/Products/R
 | `idol denoise --cond FILE` | T-2.7 | image tokens → latent and camera |
 | `idol encode --image FILE` | T-3.5 | preprocessed image → DINOv3 and FLUX.2 VAE tokens |
 | `idol generate --image FILE [--mode synthetic\|real] [--seed] [--steps] [--cfg] [--num-gaussians] [--turbo] [--reference ID]` | T-4.6, T-5.3, T-6.4 | the whole pipeline; writes `<name>.ply`, `<name>_input.png`, `<name>_camera.json` like the Python SDK |
-| `idol export --ply x.ply [--glb y.glb] [--usdz y.usdz] [--resolution 192] [--iso 0.04]` | available | coloured mesh from a splat: density grid + surface nets; GLB with vertex colours, USDZ with a baked texture atlas and a UsdPreviewSurface (passes `usdchecker --arkit`) |
+| `idol export --ply x.ply [--glb y.glb] [--usdz y.usdz] [--resolution 192]` | available | coloured mesh from a splat: the transmittance-0.5 surface seen from above and the sides; GLB with vertex colours, USDZ with a baked texture atlas and a UsdPreviewSurface (passes `usdchecker --arkit`) |
 | `idol generate … --glb --usdz` | available | also writes `<name>.glb` / `<name>.usdz` |
-| `idol export --ply x.ply --stl y.stl [--height 100] [--thickness 1.2] [--base flat\|plinth\|none] [--max-triangles 200000] [--cells 128] [--print-iso 0.01] [--print-min-opacity 0]` | available | printable STL: one closed, solid piece in millimetres, z up, on the bed; prints its `PrintReport` (`IDOL_PRINT_TIMING=1` times each stage) |
+| `idol export --ply x.ply --stl y.stl [--height 100] [--thickness 1.2] [--base flat\|plinth\|none] [--max-triangles 200000] [--cells 192] [--smoothing 60] [--print-min-opacity 0]` | available | printable STL: one closed, solid piece in millimetres, z up, on the bed; prints its `PrintReport` (`IDOL_PRINT_TIMING=1` times each stage) |
 | `idol generate … --stl` | available | also writes `<name>.stl` with the default print settings |
 | `idol references` | T-6.4 | the reference configurations |
 | `idol parity decode` | available | Swift against the Python fixtures (`Scripts/check-parity.sh decode` adds the PLY check) |
