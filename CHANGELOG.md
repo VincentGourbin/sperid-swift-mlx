@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 — 2026-11-16
+
+- **`IdolEngine` gives its thread back.** `MLXThread`'s loop never returned, so every dropped engine left one parked thread (16 MB of stack reserved) — one per release/reload cycle in an app that frees the engine between objects (reported by Fluxforge Studio). New `MLXThread.stop()` (drains the queued jobs, then the thread exits; `run` throws `CancellationError` and `async` returns `false` afterwards) and `isFinished`; `IdolEngine.deinit` calls `stop()`. Checked on the real weights: 3 load/release cycles leaked 3 threads before (14 → 17), none after (10 → 10).
+- **Cancellation latency, documented correctly**: the check sits between denoising steps, so the bound is one step — ≈ 0.2 s in turbo, one guided step (≈ 10-15 s, two full forwards) in `.quality`. The 0.7 s quoted for 0.3.0 was a cancel that landed during the encoders. The engine test now cancels mid-denoising and bounds the latency by the measured step.
+
 ## 0.3.1 — 2026-11-15
 
 - **mlx-swift `0.31.6..<0.33.0`** instead of `exact: "0.32.3"`, so that apps pinning 0.31.6 (Fluxforge Studio with flux-2-swift-mlx and yue2-mlx-swift) can resolve the package. Validated at 0.31.6 on the real weights: 62 tests (parity of every network, turbo, `IdolEngine` with cancellation), `idol parity decode|denoise` (fp32 anchors bit-exact, 50-step latent 3.1e-3), an end-to-end generation with USDZ (`usdchecker --arkit` passes). The upper end (0.32.3) is the v0.3.0 validation. No code change.

@@ -32,7 +32,9 @@ extension CGImage: @retroactive @unchecked Sendable {}
 /// ```
 ///
 /// Every MLX call runs on the engine's own thread (`MLXThread`); calls are serialised, one generation
-/// at a time. Cancelling the calling task stops the generation before its next denoising step.
+/// at a time. Cancelling the calling task stops the generation before its next denoising step (one step:
+/// ≈ 0.2 s in turbo, ≈ 10 s in `.quality` with guidance). Releasing the last reference frees the weights
+/// and ends the thread, so an app can drop the engine between objects and load it again.
 public final class IdolEngine: @unchecked Sendable {
     public struct Configuration: Sendable {
         public enum BackgroundRemoval: Sendable { case birefnet, vision }
@@ -61,6 +63,9 @@ public final class IdolEngine: @unchecked Sendable {
         self.hasTurbo = pipeline.turbo != nil
         self.modelsDirectory = modelsDirectory
     }
+
+    /// Ends the engine's MLX thread. A generation in flight holds the engine, so none is queued here.
+    deinit { thread.stop() }
 
     /// Loads every network from `modelsDirectory` (see `IdolModels` to check or download them).
     public static func load(modelsDirectory: URL = ModelsDirectory.resolve(),
