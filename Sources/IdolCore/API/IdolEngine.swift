@@ -32,8 +32,8 @@ extension CGImage: @retroactive @unchecked Sendable {}
 /// ```
 ///
 /// Every MLX call runs on the engine's own thread (`MLXThread`); calls are serialised, one generation
-/// at a time. Cancelling the calling task stops the generation before its next denoising step (one step:
-/// ≈ 0.2 s in turbo, ≈ 10 s in `.quality` with guidance). Releasing the last reference frees the weights
+/// at a time. Cancelling the calling task stops the generation before its next denoising step or between the two
+/// forwards of a guided step: ≈ 0.2 s in turbo, ≈ 5-7 s (one forward) in `.quality`. Releasing the last reference frees the weights
 /// and ends the thread, so an app can drop the engine between objects and load it again.
 public final class IdolEngine: @unchecked Sendable {
     public struct Configuration: Sendable {

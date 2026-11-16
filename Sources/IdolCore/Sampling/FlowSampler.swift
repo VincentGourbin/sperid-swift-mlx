@@ -61,6 +61,10 @@ public enum FlowSampler {
                 let v = denoiser(latent: x, camera: cam, t: netT, feature1: condition.feature1, feature2: condition.feature2)
                 (vx, vc) = (v.latent, v.camera)
                 if w > 0 {
+                    // Evaluate the conditional pass on its own so a cancel can land between the two forwards
+                    // (halves the latency in `.quality`); same kernels, bit-identical result.
+                    eval(vx, vc)
+                    if isCancelled() { throw CancellationError() }
                     let u = denoiser(latent: x, camera: cam, t: netT, feature1: neg.feature1, feature2: neg.feature2)
                     vx = (1 + w) * vx - w * u.latent
                     vc = (1 + w) * vc - w * u.camera

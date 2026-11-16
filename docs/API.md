@@ -4,7 +4,7 @@ Two libraries: **`IdolCore`** (the pipeline, the engine, the exports — macOS 1
 (RealityKit 27: the splat as an entity, a SwiftUI view, an offscreen renderer).
 
 ```swift
-.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.2")
+.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.3")
 ```
 
 ## The shortest path
@@ -33,7 +33,7 @@ A gated file the account cannot read throws `SperidError.gatedRepository` with t
 | | |
 |---|---|
 | `IdolEngine.load(modelsDirectory:configuration:) async throws` | loads the six networks (≈ 4 GB at the reference precision); each engine owns one MLX thread (`MLXThread`) |
-| `engine.generate(_ image: IdolImage, settings:progress:) async throws -> IdolResult` | one generation at a time (calls are serialised); **cancelling the calling task** stops it before the next denoising step: ≈ 0.2 s in turbo, up to one guided step (≈ 10 s, Fluxforge measured 6.8 s) in `.quality` |
+| `engine.generate(_ image: IdolImage, settings:progress:) async throws -> IdolResult` | one generation at a time (calls are serialised); **cancelling the calling task** stops it before the next denoising step: ≈ 0.2 s in turbo, up to half a guided step in `.quality` (one forward, ≈ 5-7 s: the check also sits between the conditional and the negative pass) |
 | `engine.hasTurbo` | the idol-turbo LoRAs were found |
 | `IdolEngine.Configuration` | `backgroundRemoval: .birefnet` (default, the reference) or `.vision` (Apple Vision, no weights, misses subjects in busy scenes); `memory: .bounded()` (2 GB MLX cache: ≈ 11 GB process peak instead of 34) or `.unbounded` |
 

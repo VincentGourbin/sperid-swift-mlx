@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 — 2026-11-16
+
+- **Cancellation in `.quality` waits half a step instead of a whole one.** The guided step evaluates its conditional forward on its own and checks cancellation before the negative forward. Bit-identical: same PLY bytes for a 6-step guided generation, same 50-step parity against PyTorch (final latent relL2 0.0030875097, unchanged). Cost: one graph build (13.7 ms) per step; interleaved in one process, 12 steps each, median 11.96 s before vs 11.99 s after, within noise. The engine test bounds the latency by 0.6 × the measured step (5.1 s for a 10.1 s step).
+
 ## 0.3.2 — 2026-11-16
 
 - **`IdolEngine` gives its thread back.** `MLXThread`'s loop never returned, so every dropped engine left one parked thread (16 MB of stack reserved) — one per release/reload cycle in an app that frees the engine between objects (reported by Fluxforge Studio). New `MLXThread.stop()` (drains the queued jobs, then the thread exits; `run` throws `CancellationError` and `async` returns `false` afterwards) and `isFinished`; `IdolEngine.deinit` calls `stop()`. Checked on the real weights: 3 load/release cycles leaked 3 threads before (14 → 17), none after (10 → 10).

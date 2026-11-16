@@ -5,5 +5,5 @@
 /// the models directory, safetensors headers and weight contracts. Model code lives in its own
 /// target (`IdolCore`), the way YuE2Swift keeps `SheetSage2Core` apart from `YuE2Core`.
 public enum SperidCore {
-    public static let version = "0.3.2"
+    public static let version = "0.3.3"
 }

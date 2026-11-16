@@ -34,7 +34,7 @@ struct RealEngineTests {
     }
 
     /// Cancels in the middle of the denoising (not during the encoders): the latency an app sees. The check
-    /// sits between steps, so the bound is one guided step (two full forwards), measured here.
+    /// sits between steps and between the two forwards of a guided step, so the bound is half a step.
     @Test func cancellationStopsAGeneration() async throws {
         let engine = try await IdolEngine.load(modelsDirectory: RealFixtures.root)
         let steps = StepClock()
@@ -48,7 +48,7 @@ struct RealEngineTests {
         await #expect(throws: CancellationError.self) { _ = try await task.value }
         let latency = Date().timeIntervalSince(start)
         print(String(format: "REALENGINE quality cancelled after %.1f s (guided step %.1f s)", latency, steps.longest))
-        #expect(latency < steps.longest + 2)
+        #expect(latency < steps.longest * 0.6 + 2)
     }
 
     /// Fluxforge drops the engine whenever its GPU queue moves to another model: each cycle must give its

@@ -33,7 +33,7 @@ Measured on an M3 Max 96 GB (in session, see [benchmarks](docs/knowledge/benchma
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.2"),
+.package(url: "https://github.com/VincentGourbin/sperid-swift-mlx", from: "0.3.3"),
 // target dependencies: .product(name: "IdolCore", package: "sperid-swift-mlx"),
 //                      .product(name: "IdolUI", package: "sperid-swift-mlx")   // RealityKit view (macOS / iOS 27)
 ```
